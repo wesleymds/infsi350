@@ -17,6 +17,8 @@
 #include "Vec3.h"
 #include "tiny_obj_loader.h"
 
+#include "Mesh.h"
+
 using namespace std;
 
 // App parameters
@@ -44,6 +46,8 @@ static Vec3f sceneCenter = Vec3f (0.f, 0.f, 0.f);
 static float sceneRadius = 1.f;
 static vector<tinyobj::shape_t> shapes;
 static vector<tinyobj::material_t> materials;
+
+static Mesh mesh;
 
 // Mouse parameters
 static bool mouseLeftButtonClicked = false;
@@ -145,6 +149,9 @@ bool loadScene(const string & filename, const string & basepath = "") {
     }
     computeSceneNormals ();
     computeSceneBoundingSphere ();
+
+    mesh.set_mesh(shapes);
+    mesh.show_properties();
     return true;
 }
 
