@@ -13,7 +13,8 @@
 #include <cstring>
 #include <cstdlib>
 #include <cmath>
-#include <GL/glut.h>
+//#include <GL/glut.h>
+#include <GLUT/glut.h> // Using for MacOS. Leave this comment.
 #include "Vec3.h"
 #include "tiny_obj_loader.h"
 
@@ -240,6 +241,28 @@ void displayRayImage () {
     glDrawPixels (screenWidth, screenHeight, GL_RGB, GL_UNSIGNED_BYTE, static_cast<void*>(rayImage));
     glutSwapBuffers ();
     glEnable (GL_DEPTH_TEST);
+}
+
+// Test if a a point of the scene (v) is occulted by any triangle
+// in a epsilon interval
+bool isDirectedOcculted (Vertex v, float epsilon) {
+	// Light ray from v
+	Vec3f lightRay = lightPos - v.p;
+
+	const Vertex v1, v2, v3, intersecV;
+	Vec3f intersecT;
+	// Check intersection with all triangles of the mesh with lightRay
+	for (unsigned int i = 0; i < mesh.T.size (); i++) {
+		v1 = mesh.V[mesh.T[i].v[0]];
+		v2 = mesh.V[mesh.T[i].v[1]];
+		v3 = mesh.V[mesh.T[i].v[2]];
+		if (rayTriangleIntersection(v1.p, v2.p, v3.p, intersecT))
+			if (dist(intersecT, v.p) < epsilon)
+				// If there is an intersection with distance < epsilon
+				return false;
+	}
+	
+	return true;
 }
 
 // MAIN FUNCTION TO CHANGE !
