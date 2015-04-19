@@ -3,7 +3,10 @@
 
 #include <iostream>
 #include "Vec3.h"
+#include "Mesh.h"
 #include "tiny_obj_loader.h"
+
+#define ivtri(i, tri) &(scene.V[tri.v[i]].p)
 
 class Ray {
 private:
@@ -18,9 +21,18 @@ public:
         : origin(origin), direction(direction)
     {}
 
+    Ray(const Vec3f& origin)
+        : origin(origin)
+    {}
+
+    void setDirection(const Vec3f& _direction) {
+        direction = _direction;
+    }
+
     int rayTriangleIntersection(const Vec3f& p0, const Vec3f& p1, const Vec3f& p2, Vec3f& out) {
         Vec3f e0, e1, n, q, s, r;
         float a, b0, b1, b2, t;
+
         e0 = p1 - p0;
         e1 = p2 - p0;
 
@@ -46,9 +58,22 @@ public:
         return 0;
     }
 
-    ///TODO
-    int raySceneIntersection(const std::vector<tinyobj::shape_t>& scene) {
+    int raySceneIntersection(const Mesh& scene, Vec3f& out) {
+        const Vec3f* p0;
+        const Vec3f* p1;
+        const Vec3f* p2;
+        for(auto tri: scene.T) {
+            p0 = ivtri(0, tri);
+            p1 = ivtri(1, tri);
+            p2 = ivtri(2, tri);
+            if(rayTriangleIntersection(*p0, *p1, *p2, out)) return 1;
+        }
         return 0;
+    }
+
+    ///TODO
+    void evaluateResponse() {
+
     }
 };
 

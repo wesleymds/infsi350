@@ -24,6 +24,9 @@
 #include <vector>
 #include <iostream>
 
+#define ptv(i) shapes[s].mesh.positions[i]
+#define ntv(i) shapes[s].mesh.normals[i]
+
 class Vertex {
 public:
     inline Vertex () {}
@@ -67,11 +70,6 @@ public:
 class Mesh {
 private:
     std::vector<tinyobj::shape_t> shapes;
-    std::vector<Vertex> V;
-    std::vector<Triangle> T;
-
-#define ptv(i) shapes[s].mesh.positions[i]
-#define ntv(i) shapes[s].mesh.normals[i]
 
     void regenerate_from_obj() {
         unsigned int index;
@@ -130,6 +128,9 @@ private:
     }
 
 public:
+    std::vector<Vertex> V;
+    std::vector<Triangle> T;
+
     Mesh() {}
 
     Mesh(std::vector<tinyobj::shape_t>& shapes)

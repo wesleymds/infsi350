@@ -13,10 +13,12 @@
 #include <cstring>
 #include <cstdlib>
 #include <cmath>
-//#include <GL/glut.h>
-#include <GLUT/glut.h> // Using for MacOS. Leave this comment.
+#include <GL/glut.h>
+// Using for MacOS. Uncomment it.
+//#include <GLUT/glut.h>
 #include "Vec3.h"
 #include "tiny_obj_loader.h"
+#include "Ray.h"
 
 #include "Mesh.h"
 
@@ -31,6 +33,7 @@ static GLint window;
 static unsigned int screenWidth;
 static unsigned int screenHeight;
 static bool rayDisplayMode = false;
+static unsigned int FPS = 0;
 
 // Camera parameters
 static float fovAngle;
@@ -245,33 +248,42 @@ void displayRayImage () {
 
 // Test if a a point of the scene (v) is occulted by any triangle
 // in a epsilon interval
-bool isDirectedOcculted (Vertex v, float epsilon) {
-	// Light ray from v
-	Vec3f lightRay = lightPos - v.p;
+/*bool isDirectedOcculted (Vertex v, float epsilon) {
+    // Light ray from v
+    Vec3f lightRay = lightPos - v.p;
 
-	const Vertex v1, v2, v3, intersecV;
-	Vec3f intersecT;
-	// Check intersection with all triangles of the mesh with lightRay
-	for (unsigned int i = 0; i < mesh.T.size (); i++) {
-		v1 = mesh.V[mesh.T[i].v[0]];
-		v2 = mesh.V[mesh.T[i].v[1]];
-		v3 = mesh.V[mesh.T[i].v[2]];
-		if (rayTriangleIntersection(v1.p, v2.p, v3.p, intersecT))
-			if (dist(intersecT, v.p) < epsilon)
-				// If there is an intersection with distance < epsilon
-				return false;
-	}
-	
-	return true;
-}
+    const Vertex v1, v2, v3, intersecV;
+    Vec3f intersecT;
+    // Check intersection with all triangles of the mesh with lightRay
+    for (unsigned int i = 0; i < mesh.T.size (); i++) {
+        v1 = mesh.V[mesh.T[i].v[0]];
+        v2 = mesh.V[mesh.T[i].v[1]];
+        v3 = mesh.V[mesh.T[i].v[2]];
+        if (rayTriangleIntersection(v1.p, v2.p, v3.p, intersecT))
+            if (dist(intersecT, v.p) < epsilon)
+                // If there is an intersection with distance < epsilon
+                return false;
+    }
+
+    return true;
+}*/
 
 // MAIN FUNCTION TO CHANGE !
 void rayTrace () {
-    for (unsigned int i = 0; i < screenWidth; i++)
+    Vec3f eye = polarToCartesian(camEyePolar);
+    Vec3f w = sceneCenter - eye;
+    w.normalize();
+    Vec3f b(0.f, 1.f, 0.f);
+    Vec3f u = cross(b, w);
+    u.normalize();
+    v = cross(w, u);
+
+    ///TODO ray trace http://www1.cs.columbia.edu/~cs4162/slides/lecture16.pdf
+    /*for (unsigned int i = 0; i < screenWidth; i++)
         for (unsigned int  j = 0; j < screenHeight; j++) {
-            unsigned int index = 3*(i+j*screenWidth);
-            rayImage[index] = rayImage[index+1] = rayImage[index+2] = rand ()%255;
-        }
+            //unsigned int index = 3*(i+j*screenWidth);
+
+        }*/
 }
 
 void display () {  
@@ -332,7 +344,7 @@ void mouse (int button, int state, int x, int y) {
 
 void motion (int x, int y) {
     if (mouseLeftButtonClicked == true) {
-        camEyePolar[1] =  baseCamPhi  + (float (clickedY-y)/screenHeight) * M_PI;
+        camEyePolar[1] = baseCamPhi + (float (clickedY-y)/screenHeight) * M_PI;
         camEyePolar[2] = baseCamTheta + (float (x-clickedX)/screenWidth) * M_PI;
         glutPostRedisplay (); // calls the display function
     }
@@ -340,6 +352,20 @@ void motion (int x, int y) {
 
 // This function is executed in an infinite loop. 
 void idle () {
+    static float lastTime = glutGet ((GLenum)GLUT_ELAPSED_TIME);
+    static unsigned int counter = 0;
+    counter++;
+    float currentTime = glutGet ((GLenum)GLUT_ELAPSED_TIME);
+    if (currentTime - lastTime >= 1000.0f) {
+        FPS = counter;
+        counter = 0;
+        static char winTitle [128];
+        unsigned int numOfTriangles = mesh.T.size ();
+        sprintf (winTitle, "Number Of Triangles: %d - FPS: %d", numOfTriangles, FPS);
+        glutSetWindowTitle (winTitle);
+        lastTime = currentTime;
+    }
+    glutPostRedisplay ();
 }
 
 int main (int argc, char ** argv) {
