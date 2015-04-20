@@ -8,9 +8,11 @@
 
 #define ivtri(i, tri) &(scene.V[tri.v[i]].p)
 
+using namespace std;
+
 class Ray {
 private:
-    static float epsilon;
+    static const float epsilon;
 
     Vec3f origin;
     Vec3f direction;
@@ -66,7 +68,7 @@ public:
             p0 = ivtri(0, tri);
             p1 = ivtri(1, tri);
             p2 = ivtri(2, tri);
-            if(rayTriangleIntersection(*p0, *p1, *p2, out)) return 1;
+            if(rayTriangleIntersection(*p0, *p1, *p2, out) == 1) return 1;
         }
         return 0;
     }

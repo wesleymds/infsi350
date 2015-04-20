@@ -27,7 +27,7 @@ using namespace std;
 // App parameters
 static const unsigned int DEFAULT_SCREENWIDTH = 1024;
 static const unsigned int DEFAULT_SCREENHEIGHT = 768;
-static const char * DEFAULT_SCENE_FILENAME = "scenes/cornell_box/cornell_box.obj";
+static const char * DEFAULT_SCENE_FILENAME = "scenes/cube/cube.obj";
 static string appTitle ("MCRT - Monte Carlo Ray Tracer");
 static GLint window;
 static unsigned int screenWidth;
@@ -61,6 +61,8 @@ static float baseCamTheta;
 
 // Raytraced image
 static unsigned char * rayImage = NULL;
+
+const float Ray::epsilon(0.001);
 
 void printUsage () {
     std::cerr << std::endl // send a line break to the standard error output
@@ -224,7 +226,7 @@ void rasterize () {
                 unsigned int i = shapes[s].mesh.material_ids[f];
                 glColor3f (materials[i].diffuse[0], materials[i].diffuse[1], materials[i].diffuse[2]);
             }
-            for (size_t v = 0; v  < 3; v++) {
+            for (size_t v = 0; v < 3; v++) {
                 unsigned int index = 3*shapes[s].mesh.indices[3*f+v];
                 glNormal3f (shapes[s].mesh.normals[index],
                             shapes[s].mesh.normals[index+1],
@@ -269,28 +271,103 @@ void displayRayImage () {
 }*/
 
 // MAIN FUNCTION TO CHANGE !
-void rayTrace () {
+void rayTrace () {    
     Vec3f eye = polarToCartesian(camEyePolar);
     Vec3f w = sceneCenter - eye;
     w.normalize();
     Vec3f b(0.f, 1.f, 0.f);
     Vec3f u = cross(b, w);
     u.normalize();
-    v = cross(w, u);
+    Vec3f v = cross(w, u);
+    float fovH = 2.f * atan(tan((fovAngle * M_PI) / 360.f) * aspectRatio);
+    float alpha, beta;
+    Vec3f add, rayDir;
+    Ray ray(eye);
+    Vec3f intersect;
 
     ///TODO ray trace http://www1.cs.columbia.edu/~cs4162/slides/lecture16.pdf
-    /*for (unsigned int i = 0; i < screenWidth; i++)
-        for (unsigned int  j = 0; j < screenHeight; j++) {
-            //unsigned int index = 3*(i+j*screenWidth);
+    for (unsigned int  j = 0; j < screenHeight; j++) {
+        alpha = tan(fovH/2.f) * ((j - (screenWidth/2.f))/(screenWidth/2.f));
+        for (unsigned int i = 0; i < screenWidth; i++) {
+            beta = tan(fovAngle/2.f) * (((screenHeight/2.f) - i)/(screenHeight/2.f));
+            add = alpha * u + beta * v - w;
+            add.normalize();
+            rayDir = Vec3f(1.f, 1.f, 1.f) - eye;
+            ray.setDirection(rayDir);
+            //if (ray.raySceneIntersection(mesh, intersect) == 1) cout << 1 << endl;
+        }
+    }
+}
 
-        }*/
+void drawRays() {
+    Vec3f eye = polarToCartesian(camEyePolar);
+    Vec3f w = sceneCenter - eye;
+    w.normalize();
+    Vec3f b(0.f, 1.f, 0.f);
+    Vec3f u = cross(b, w);
+    u.normalize();
+    Vec3f v = cross(w, u);
+    float fovH = 2.f * atan(tan((fovAngle * M_PI) / 360.f) * aspectRatio);
+    float alpha, beta;
+    Vec3f add, rayDir;
+    Ray ray(eye);
+    Vec3f intersect;
+
+    ///TODO ray trace http://www1.cs.columbia.edu/~cs4162/slides/lecture16.pdf
+    setupCamera ();
+    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Erase the color and z buffers.
+    glColor3f (1.f, 1.f, 1.f);
+    /*glBegin(GL_LINES);
+    for (unsigned int  j = 0; j < screenHeight; j++) {
+        alpha = tan(fovH/2.f) * ((j - (screenWidth/2.f))/(screenWidth/2.f));
+        for (unsigned int i = 0; i < screenWidth; i++) {
+            beta = tan(fovAngle/2.f) * (((screenHeight/2.f) - i)/(screenHeight/2.f));
+            add = alpha * u + beta * v - w;
+            add.normalize();
+            rayDir = Vec3f(1.f, 1.f, 1.f) - eye;
+            ray.setDirection(rayDir);
+            if (ray.raySceneIntersection(mesh, intersect) == 1) cout << 1 << endl;
+        }
+    }
+    glVertex3f(eye[0], eye[1], eye[2]);
+    glVertex3f(rayDir[0], rayDir[1], rayDir[2]);
+    glEnd();
+    glBegin(GL_TRIANGLES);
+    for (size_t s = 0; s < shapes.size (); s++)
+        for (size_t f = 0; f < shapes[s].mesh.indices.size() / 3; f++) {
+            if (!materials.empty ()) {
+                unsigned int i = shapes[s].mesh.material_ids[f];
+                glColor3f (materials[i].diffuse[0], materials[i].diffuse[1], materials[i].diffuse[2]);
+            }
+            for (size_t v = 0; v  < 3; v++) {
+                unsigned int index = 3*shapes[s].mesh.indices[3*f+v];
+                glNormal3f (shapes[s].mesh.normals[index],
+                            shapes[s].mesh.normals[index+1],
+                        shapes[s].mesh.normals[index+2]);
+                glVertex3f (shapes[s].mesh.positions[index],
+                            shapes[s].mesh.positions[index+1],
+                        shapes[s].mesh.positions[index+2]);
+            }
+        }
+    glEnd();*/
+    glBegin(GL_TRIANGLES);
+    for (unsigned int i = 0; i < mesh.T.size (); i++)
+        for (unsigned int j = 0; j < 3; j++) {
+            const Vertex & v = mesh.V[mesh.T[i].v[j]];
+            glNormal3f (v.n[0], v.n[1], v.n[2]); // Specifies current normal vertex
+            glVertex3f (v.p[0], v.p[1], v.p[2]); // Emit a vertex (one triangle is emitted each time 3 vertices are emitted)
+        }
+    glEnd ();
+    glFlush(); // Ensures any previous OpenGL call has been executed
+    glutSwapBuffers();
+    glEnable (GL_DEPTH_TEST);
 }
 
 void display () {  
     if (rayDisplayMode)
-        displayRayImage ();
-    else
-        rasterize ();
+        //displayRayImage ();
+        drawRays();
+    else rasterize ();
 }
 
 void saveRayImage (const string & filename) {

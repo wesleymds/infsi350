@@ -23,6 +23,7 @@
 #include "Vec3.h"
 #include <vector>
 #include <iostream>
+#include <algorithm>
 
 #define ptv(i) shapes[s].mesh.positions[i]
 #define ntv(i) shapes[s].mesh.normals[i]
@@ -32,6 +33,9 @@ public:
     inline Vertex () {}
     inline Vertex (const Vec3f & p, const Vec3f & n) : p (p), n (n) {}
     inline virtual ~Vertex () {}
+    inline bool operator == (const Vertex& that) {
+        return (p[0] == that.p[0] && p[1] == that.p[1] && p[2] == that.p[2]);
+    }
     Vec3f p;
     Vec3f n;
 };
@@ -72,26 +76,20 @@ private:
     std::vector<tinyobj::shape_t> shapes;
 
     void regenerate_from_obj() {
-        unsigned int index;
-        unsigned int shapes_size(0);
+        unsigned int vertex_ind(0), i;
         Triangle tri;
         for (size_t s = 0; s < shapes.size(); s++) {
-            shapes_size += shapes[s].mesh.positions.size();
-            V.reserve(shapes_size);
-            for(size_t i = 0; i < shapes[s].mesh.positions.size(); i+=3) {
-                V.push_back(Vertex(Vec3f(ptv(i), ptv(i + 1), ptv(i + 2)), Vec3f(ntv(i), ntv(i + 1), ntv(i + 2))));
-            }
-
             T.reserve(shapes[s].mesh.indices.size() / 3);
+            V.reserve(shapes[s].mesh.indices.size() / 3);
             for (size_t f = 0; f < shapes[s].mesh.indices.size() / 3; f++) {
                 for (size_t v = 0; v < 3; v++) {
-                    index = 3*shapes[s].mesh.indices[3*f+v];
-                    tri.v[v] = index;
+                    i = 3*shapes[s].mesh.indices[3*f+v];
+                    V.push_back(Vertex(Vec3f(ptv(i), ptv(i + 1), ptv(i + 2)), Vec3f(ntv(i), ntv(i + 1), ntv(i + 2))));
+                    tri.v[v] = vertex_ind++;
                 }
                 T.push_back(tri);
             }
         }
-
         /*centerAndScaleToUnit();
 
         recomputeNormals();*/
@@ -148,8 +146,8 @@ public:
 
     void show_properties() {
         unsigned int shapes_size(0);
-        for (size_t s = 0; s < shapes.size(); s++) shapes_size += shapes[s].mesh.positions.size();
-        std::cout << "Number of vertices in shape model = " << shapes_size / 3 << std::endl;
+        for (size_t s = 0; s < shapes.size(); s++) shapes_size += shapes[s].mesh.indices.size();
+        std::cout << "Number of triangles in shape model = " << shapes_size / 3 << std::endl;
         std::cout << "Number of vertices in mesh model = " << V.size() << std::endl;
         std::cout << "Number of triangles in mesh model = " << T.size() << std::endl;
     }
