@@ -270,6 +270,58 @@ void displayRayImage () {
     return true;
 }*/
 
+// Compute the BRDF GGX model of light response in a vertice
+float reponseBRDF_GGX (Vertex v) {
+	// Parameters in equations
+	float res, fd, fs, d, roughness, alpha, aux, f, g, f0, gi, go;
+	Vec3f wi, vn, wo, wh;
+	
+	// Alpha term (roughness)
+	roughness = 0.5; // replace by 1/materials[i].shininess
+	alpha = pow(roughness, 2.0);
+	
+	// Normal of V
+	vn = v.n;
+	vn.normalize();
+	
+	// Incident light (Light - V)
+	wi = light - v.p;
+	wi.normalize();
+	
+	// Camera
+	camera.getPos(wo);
+	
+	// HalfVector
+	wh = wi + wo;
+	wh.normalize();
+	
+	// D(wi, wo): GGX distribution
+	aux = 1 + (pow(alpha, 2.0) - 1.0) * pow(dot(vn, wh), 2.0);
+	d = pow(alpha, 2.0) / (M_PI * pow(aux, 2.0));
+	
+	// F(wi, wh): Fernel term
+	f0 = 0.91; // replace by the reflexion coef materials[i].?
+	aux = dot(wi, wh);
+	if (aux < 0)
+		aux = 0;
+	f = f0 + (1 - f0) * pow((1 - aux), 5.0);
+	
+	// G(wi, w0): Geometric term
+	aux = pow(alpha, 2.0) + (1 - pow(alpha, 2.0) * pow(dot(vn, wi), 2.0));
+	gi = (2 * dot(vn, wi)) / (dot(vn, wi) + sqrt(aux));
+	aux = pow(alpha, 2.0) + (1 - pow(alpha, 2.0) * pow(dot(vn, wo), 2.0));
+	go = (2 * dot(vn, wo)) / (dot(vn, wo) + sqrt(aux));
+	g = gi * go;
+	
+	fd = 1.0 / M_PI; // Diffuse term
+	fs = (d * f * g) / (4 * dot(vn, wi) * dot(vn, wo)); // Specular term
+	
+	// Final response
+	res = 1 * (fd + fs) * dot(vn, wi);
+	
+	return res;
+}
+
 // MAIN FUNCTION TO CHANGE !
 void rayTrace () {    
     Vec3f eye = polarToCartesian(camEyePolar);
