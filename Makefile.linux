@@ -1,11 +1,11 @@
 CIBLE = my_ray_tracer
-SRCS =  main.cpp tiny_obj_loader.cpp
+SRCS =  main.cpp tiny_obj_loader.cpp KDNode.cpp
 LIBS =  -L/usr/lib/nvidia-340/ -lglut -lGLU -lGL -lm 
 
 CC = g++
 CPP = g++
 
-FLAGS = -Wall -O2 
+FLAGS = -Wall -O2 -std=c++0x
 
 CFLAGS = $(FLAGS)
 CXXFLAGS = $(FLAGS)
@@ -17,7 +17,7 @@ $(CIBLE): $(OBJS)
 clean:
 	rm -f  *~  $(CIBLE) $(OBJS)
 
-main.o: main.cpp tiny_obj_loader.h Vec3.h
-tiny_obj_loader.o: tiny_obj_loader.cpp tiny_obj_loader.h
+main.o: main.cpp tiny_obj_loader.h Vec3.h KDNode.h
+tiny_obj_loader.o: tiny_obj_loader.cpp tiny_obj_loader.h KDNode.cpp KDNode.h
 
 
