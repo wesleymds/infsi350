@@ -49,6 +49,7 @@ public:
         v[0] = t.v[0];
         v[1] = t.v[1];
         v[2] = t.v[2];
+        material_id = t.material_id;
     }
     inline Triangle (unsigned int v0, unsigned int v1, unsigned int v2) {
         v[0] = v0;
@@ -60,6 +61,7 @@ public:
         v[0] = t.v[0];
         v[1] = t.v[1];
         v[2] = t.v[2];
+        material_id = t.material_id;
         return (*this);
     }
     inline void set_triangle (unsigned int v0, unsigned int v1, unsigned int v2) {
@@ -69,6 +71,7 @@ public:
     }
 
     unsigned int v[3];
+    int material_id;
 };
 
 class Mesh {
@@ -87,9 +90,12 @@ private:
                     V.push_back(Vertex(Vec3f(ptv(i), ptv(i + 1), ptv(i + 2)), Vec3f(ntv(i), ntv(i + 1), ntv(i + 2))));
                     tri.v[v] = vertex_ind++;
                 }
+                if (!materials.empty ())
+                    tri.material_id = shapes[s].mesh.material_ids[f];
                 T.push_back(tri);
             }
         }
+
         /*centerAndScaleToUnit();
 
         recomputeNormals();*/
@@ -128,19 +134,21 @@ private:
 public:
     std::vector<Vertex> V;
     std::vector<Triangle> T;
+    std::vector<tinyobj::material_t> materials;
 
     Mesh() {}
 
-    Mesh(std::vector<tinyobj::shape_t>& shapes)
-        : shapes(shapes)
+    Mesh(const std::vector<tinyobj::shape_t>& shapes,const std::vector<tinyobj::material_t>& materials)
+        : shapes(shapes), materials(materials)
     {
         regenerate_from_obj();
     }
 
-    inline void set_mesh(std::vector<tinyobj::shape_t>& _shapes) {
+    inline void set_mesh(std::vector<tinyobj::shape_t>& _shapes, const std::vector<tinyobj::material_t>& _materials) {
         V.clear();
         T.clear();
         shapes = _shapes;
+        materials = _materials;
         regenerate_from_obj();
     }
 
@@ -150,6 +158,12 @@ public:
         std::cout << "Number of triangles in shape model = " << shapes_size / 3 << std::endl;
         std::cout << "Number of vertices in mesh model = " << V.size() << std::endl;
         std::cout << "Number of triangles in mesh model = " << T.size() << std::endl;
+    }
+
+    tinyobj::material_t& material(unsigned int tri) {
+        if (!materials.empty ()) {
+            return materials[T[tri].material_id];
+        }
     }
 };
 

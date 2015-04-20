@@ -156,13 +156,13 @@ bool loadScene(const string & filename, const string & basepath = "") {
     computeSceneNormals ();
     computeSceneBoundingSphere ();
 
-    mesh.set_mesh(shapes);
+    mesh.set_mesh(shapes, materials);
     mesh.show_properties();
     return true;
 }
 
 void initCamera () {
-    fovAngle = 45.f;
+    fovAngle = 135.f;
     nearPlane = sceneRadius/10000.0f;
     farPlane = 10*sceneRadius;
     camTarget = sceneCenter;
@@ -273,28 +273,43 @@ void displayRayImage () {
 // MAIN FUNCTION TO CHANGE !
 void rayTrace () {    
     Vec3f eye = polarToCartesian(camEyePolar);
+    cout << eye << endl;
     Vec3f w = sceneCenter - eye;
     w.normalize();
     Vec3f b(0.f, 1.f, 0.f);
     Vec3f u = cross(b, w);
     u.normalize();
     Vec3f v = cross(w, u);
+    v.normalize();
     float fovH = 2.f * atan(tan((fovAngle * M_PI) / 360.f) * aspectRatio);
     float alpha, beta;
     Vec3f add, rayDir;
     Ray ray(eye);
     Vec3f intersect;
+    unsigned int ind;
+    cout << "u=" << u << endl;
+    cout << "w=" << w << endl;
+    cout << "v=" << v << endl;
 
     ///TODO ray trace http://www1.cs.columbia.edu/~cs4162/slides/lecture16.pdf
-    for (unsigned int  j = 0; j < screenHeight; j++) {
-        alpha = tan(fovH/2.f) * ((j - (screenWidth/2.f))/(screenWidth/2.f));
-        for (unsigned int i = 0; i < screenWidth; i++) {
-            beta = tan(fovAngle/2.f) * (((screenHeight/2.f) - i)/(screenHeight/2.f));
-            add = alpha * u + beta * v - w;
-            add.normalize();
-            rayDir = Vec3f(1.f, 1.f, 1.f) - eye;
+    for (unsigned int  i = 0; i < screenHeight; i++) {
+        beta = tan(fovAngle/2.f) * (((screenHeight/2.f) - i)/(screenHeight/2.f));
+        for (unsigned int j = 0; j < screenWidth; j++) {
+            alpha = tan(fovH/2.f) * ((j - (screenWidth/2.f))/(screenWidth/2.f));
+            add = u * alpha + v * beta - w;
+            //add.normalize();
+            rayDir = add;
+            rayDir.normalize();
+            //cout << "raDIr="<< rayDir << endl;
             ray.setDirection(rayDir);
-            //if (ray.raySceneIntersection(mesh, intersect) == 1) cout << 1 << endl;
+            ind = 3*(j+i*screenWidth);
+            if (ray.raySceneIntersection(mesh, intersect) == 1) {
+                rayImage[ind] = 255;//abs(alpha)*255;
+                rayImage[ind+1] = intersect[1];//abs(beta)*255;
+                rayImage[ind+2] = intersect[2];//255;
+                //rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 255;
+            }
+            else rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 30;
         }
     }
 }
@@ -317,7 +332,7 @@ void drawRays() {
     setupCamera ();
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Erase the color and z buffers.
     glColor3f (1.f, 1.f, 1.f);
-    /*glBegin(GL_LINES);
+    glBegin(GL_LINES);
     for (unsigned int  j = 0; j < screenHeight; j++) {
         alpha = tan(fovH/2.f) * ((j - (screenWidth/2.f))/(screenWidth/2.f));
         for (unsigned int i = 0; i < screenWidth; i++) {
@@ -326,34 +341,20 @@ void drawRays() {
             add.normalize();
             rayDir = Vec3f(1.f, 1.f, 1.f) - eye;
             ray.setDirection(rayDir);
-            if (ray.raySceneIntersection(mesh, intersect) == 1) cout << 1 << endl;
+            //if (ray.raySceneIntersection(mesh, intersect) == 1) cout << 1 << endl;
         }
     }
     glVertex3f(eye[0], eye[1], eye[2]);
     glVertex3f(rayDir[0], rayDir[1], rayDir[2]);
     glEnd();
     glBegin(GL_TRIANGLES);
-    for (size_t s = 0; s < shapes.size (); s++)
-        for (size_t f = 0; f < shapes[s].mesh.indices.size() / 3; f++) {
-            if (!materials.empty ()) {
-                unsigned int i = shapes[s].mesh.material_ids[f];
-                glColor3f (materials[i].diffuse[0], materials[i].diffuse[1], materials[i].diffuse[2]);
-            }
-            for (size_t v = 0; v  < 3; v++) {
-                unsigned int index = 3*shapes[s].mesh.indices[3*f+v];
-                glNormal3f (shapes[s].mesh.normals[index],
-                            shapes[s].mesh.normals[index+1],
-                        shapes[s].mesh.normals[index+2]);
-                glVertex3f (shapes[s].mesh.positions[index],
-                            shapes[s].mesh.positions[index+1],
-                        shapes[s].mesh.positions[index+2]);
-            }
-        }
-    glEnd();*/
-    glBegin(GL_TRIANGLES);
     for (unsigned int i = 0; i < mesh.T.size (); i++)
         for (unsigned int j = 0; j < 3; j++) {
             const Vertex & v = mesh.V[mesh.T[i].v[j]];
+            if (!mesh.materials.empty()) {
+                const tinyobj::material_t& material = mesh.material(i);
+                glColor3f(material.diffuse[0], material.diffuse[1], material.diffuse[2]);
+            }
             glNormal3f (v.n[0], v.n[1], v.n[2]); // Specifies current normal vertex
             glVertex3f (v.p[0], v.p[1], v.p[2]); // Emit a vertex (one triangle is emitted each time 3 vertices are emitted)
         }
@@ -365,8 +366,8 @@ void drawRays() {
 
 void display () {  
     if (rayDisplayMode)
-        //displayRayImage ();
-        drawRays();
+        displayRayImage ();
+        //drawRays();
     else rasterize ();
 }
 
