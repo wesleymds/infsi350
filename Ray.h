@@ -14,7 +14,7 @@ class Ray {
 private:
     static const float epsilon;
 
-    Vec3f origin;
+    const Vec3f origin;
     Vec3f direction;
 public:
     Ray() {}

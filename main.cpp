@@ -13,9 +13,9 @@
 #include <cstring>
 #include <cstdlib>
 #include <cmath>
-//#include <GL/glut.h>
+#include <GL/glut.h>
 // Using for MacOS. Uncomment it.
-#include <GLUT/glut.h>
+//#include <GLUT/glut.h>
 #include "Vec3.h"
 #include "tiny_obj_loader.h"
 #include "Ray.h"
@@ -219,7 +219,6 @@ void reshape (int w, int h) {
 void rasterize () {
     setupCamera ();
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Erase the color and z buffers.
-    //glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
     glBegin (GL_TRIANGLES);
     glColor3f (1.f, 1.f, 1.f);
     for (size_t s = 0; s < shapes.size (); s++)
@@ -252,19 +251,19 @@ void displayRayImage () {
 
 // Test if a a point of the scene (v) is occulted by any triangle
 // in a epsilon interval
-bool isDirectedOcculted (Vertex v, float epsilon) {
+/*bool isDirectedOcculted (Vertex v, float epsilon) {
 	// Light ray from v
 	Ray lightRay(v.p, lightPos);
 
     Vec3f intersecT;
 	// Check it there is an intersection between lightRay and a point of the scene
-	if (lightRay.raySceneIntersection(mesh, intersecT))
+    if (lightRay.raySceneIntersection(mesh, eye, intersecT))
 		// If the intersection is in a distance < epsilon
 		if (dist(intersecT, v.p) < epsilon)
 			return true;
 	
 	return false;
-}
+}*/
 
 // Compute the BRDF GGX model of light response in a vertice
 float reponseBRDF_GGX (Vertex v) {
@@ -321,10 +320,12 @@ float reponseBRDF_GGX (Vertex v) {
 // MAIN FUNCTION TO CHANGE !
 void rayTrace () {    
     cout << "RayTrace start" << endl;
-    /*Vec3f eye = polarToCartesian(camEyePolar);
+    Vec3f eye = polarToCartesian(camEyePolar);
     swap (eye[1], eye[2]);
-    eye += camTarget;*/
-    Vec3f eye(3.f, 3.f, 3.f);
+    eye += camTarget;
+
+    cout << eye << endl;
+    cout << sceneCenter << endl;
     Vec3f w = eye - sceneCenter;
     w.normalize();
     Vec3f u = cross(up, w);
@@ -335,31 +336,27 @@ void rayTrace () {
     Vec3f c = eye - w * distance;
     float height = 2.f * distance * tan(fovAngle / 2.f);
     float width = height * aspectRatio;
-    Vec3f l = c - u * (width / 2.f) - v * (height / 2.f);
-    float dx = width / screenWidth;
-    float dy = height / screenHeight;
+    Vec3f l = c - (u * (width / 2.f)) - (v * (height / 2.f));
+    float dx = width / (screenWidth - 1);
+    float dy = height / (screenHeight - 1);
     Vec3f location;
     unsigned int ind(0);
 
-    //float fovH = 2 * fovAngle * aspectRatio; //2.f * atan(tan((fovAngle * M_PI) / 360.f) * aspectRatio);
-    float alpha, beta;
     Vec3f add, rayDir;
     Ray ray(eye);
     Vec3f intersect;
-
-    /*ray.setDirection(c - eye);
-    cout << ray.raySceneIntersection(mesh, eye, intersect) << endl;*/
 
     for (unsigned int i = 0; i < screenHeight; ++i)
     {
         for (unsigned int j = 0; j < screenWidth; ++j)
         {
-            location = l + u * i * dx + v * j * dy + u * (dx / 2.f) + v * (dy / 2.f);
+            location = l + u * j * dx + v * i * dy + u * (dx / 2.f) + v * (dy / 2.f);
             rayDir = location - eye;
             ray.setDirection(rayDir);
             ind = 3*(j+i*screenWidth);
             if (ray.raySceneIntersection(mesh, eye, intersect) == 1) {
-                rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 255;
+                rayImage[ind+2] = 255;
+                rayImage[ind] = rayImage[ind+1] = 255 / (eye-intersect).length();
             }
             else rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 0;
         }
@@ -368,11 +365,110 @@ void rayTrace () {
     cout << "RayTrace finish" << endl;
 }
 
-void drawRays() {
+void display () {  
+    if (rayDisplayMode)
+        displayRayImage ();
+        //drawRays();
+    else rasterize ();
+}
+
+void saveRayImage (const string & filename) {
+    if (rayImage != NULL) {
+        std::ofstream out (filename.c_str ());
+        out << "P3" << endl
+            << screenWidth << " " << screenHeight << endl
+            << "255" << endl;
+        for (unsigned int i = 0; i < 3*screenWidth*screenHeight; i++)
+            out << static_cast<int>(rayImage[i]) << " ";
+        out.close ();
+    }
+}
+
+void keyboard (unsigned char keyPressed, int x, int y) {
+    switch (keyPressed) {
+    case ' ':
+        rayDisplayMode = !rayDisplayMode;
+        glutPostRedisplay ();
+        break;
+    case 'r':
+        rayTrace ();
+        glutPostRedisplay ();
+        break;
+    case 's':
+        saveRayImage ("raytraced_image.ppm");
+        break;
+    case 'q':
+    case 27:
+        exit (0);
+        break;
+    default:
+        printUsage ();
+        break;
+    }
+}
+
+void mouse (int button, int state, int x, int y) {
+    if (button == GLUT_LEFT_BUTTON) {
+        if (state == GLUT_DOWN) {
+            mouseLeftButtonClicked = true;
+            clickedX = x;
+            clickedY = y;
+            baseCamPhi = camEyePolar[1];
+            baseCamTheta = camEyePolar[2];
+        } else {
+            mouseLeftButtonClicked = false;
+        }
+    }
+}
+
+void motion (int x, int y) {
+    if (mouseLeftButtonClicked == true) {
+        camEyePolar[1] = baseCamPhi + (float (clickedY-y)/screenHeight) * M_PI;
+        camEyePolar[2] = baseCamTheta + (float (x-clickedX)/screenWidth) * M_PI;
+        glutPostRedisplay (); // calls the display function
+    }
+}
+
+// This function is executed in an infinite loop. 
+void idle () {
+    static float lastTime = glutGet ((GLenum)GLUT_ELAPSED_TIME);
+    static unsigned int counter = 0;
+    counter++;
+    float currentTime = glutGet ((GLenum)GLUT_ELAPSED_TIME);
+    if (currentTime - lastTime >= 1000.0f) {
+        FPS = counter;
+        counter = 0;
+        static char winTitle [128];
+        unsigned int numOfTriangles = mesh.T.size ();
+        sprintf (winTitle, "Number Of Triangles: %d - FPS: %d", numOfTriangles, FPS);
+        glutSetWindowTitle (winTitle);
+        lastTime = currentTime;
+    }
+    glutPostRedisplay ();
+}
+
+int main (int argc, char ** argv) {
+    glutInit (&argc, argv); // Initialize a glut app
+    glutInitDisplayMode (GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE); // Setup a RGBA framebuffer to display, with a depth buffer (z-buffer), in double buffer mode (fill a buffer then update the screen)
+    glutInitWindowSize (DEFAULT_SCREENWIDTH, DEFAULT_SCREENHEIGHT); // Set the window app size on screen
+    window = glutCreateWindow (appTitle.c_str ()); // create the window
+    if (argc > 1)
+        init (argv[1]); // Your initialization code (OpenGL states, geometry, material, lights, etc)
+    else
+        init (DEFAULT_SCENE_FILENAME);
+    glutReshapeFunc (reshape); // Callback function executed whenever glut need to setup the projection matrix
+    glutDisplayFunc (display); // Callback function executed when the window app need to be redrawn
+    glutKeyboardFunc (keyboard); // Callback function executed when the keyboard is used
+    glutMouseFunc (mouse); // Callback function executed when a mouse button is clicked
+    glutMotionFunc (motion); // Callback function executed when the mouse move
+    glutIdleFunc (idle); // Callback function executed continuously when no other event happens (good for background procesing or animation for instance).
+    printUsage (); // By default, display the usage help of the program
+    glutMainLoop ();
+    return 0;
+}
+
+/*void drawRays() {
     setupCamera();
-    /*Vec3f eye = polarToCartesian(camEyePolar);
-    swap (eye[1], eye[2]);
-    eye += camTarget;*/
     Vec3f eye(3.f, 3.f, 3.f);
     Vec3f w = eye - sceneCenter;
     w.normalize();
@@ -529,11 +625,7 @@ void drawRays() {
         }
     }
 
-    glEnd();*/
-
-    //cout << "dot(add,w)=" << dot(add,w) << endl;
-
-    //cout << "dot(u,w)=" << dot(u,w) << "dot(u,v)=" << dot(u,v) << "dot(v,w)=" << dot(v,w) << endl;
+    glEnd();
 
     glBegin(GL_TRIANGLES);
     for (unsigned int i = 0; i < mesh.T.size (); i++)
@@ -550,109 +642,7 @@ void drawRays() {
     glFlush(); // Ensures any previous OpenGL call has been executed
     glutSwapBuffers();
     glEnable (GL_DEPTH_TEST);
-}
-
-void display () {  
-    if (rayDisplayMode)
-        displayRayImage ();
-        //drawRays();
-    else rasterize ();
-}
-
-void saveRayImage (const string & filename) {
-    if (rayImage != NULL) {
-        std::ofstream out (filename.c_str ());
-        out << "P3" << endl
-            << screenWidth << " " << screenHeight << endl
-            << "255" << endl;
-        for (unsigned int i = 0; i < 3*screenWidth*screenHeight; i++)
-            out << static_cast<int>(rayImage[i]) << " ";
-        out.close ();
-    }
-}
-
-void keyboard (unsigned char keyPressed, int x, int y) {
-    switch (keyPressed) {
-    case ' ':
-        rayDisplayMode = !rayDisplayMode;
-        glutPostRedisplay ();
-        break;
-    case 'r':
-        rayTrace ();
-        glutPostRedisplay ();
-        break;
-    case 's':
-        saveRayImage ("raytraced_image.ppm");
-        break;
-    case 'q':
-    case 27:
-        exit (0);
-        break;
-    default:
-        printUsage ();
-        break;
-    }
-}
-
-void mouse (int button, int state, int x, int y) {
-    if (button == GLUT_LEFT_BUTTON) {
-        if (state == GLUT_DOWN) {
-            mouseLeftButtonClicked = true;
-            clickedX = x;
-            clickedY = y;
-            baseCamPhi = camEyePolar[1];
-            baseCamTheta = camEyePolar[2];
-        } else {
-            mouseLeftButtonClicked = false;
-        }
-    }
-}
-
-void motion (int x, int y) {
-    if (mouseLeftButtonClicked == true) {
-        camEyePolar[1] = baseCamPhi + (float (clickedY-y)/screenHeight) * M_PI;
-        camEyePolar[2] = baseCamTheta + (float (x-clickedX)/screenWidth) * M_PI;
-        glutPostRedisplay (); // calls the display function
-    }
-}
-
-// This function is executed in an infinite loop. 
-void idle () {
-    static float lastTime = glutGet ((GLenum)GLUT_ELAPSED_TIME);
-    static unsigned int counter = 0;
-    counter++;
-    float currentTime = glutGet ((GLenum)GLUT_ELAPSED_TIME);
-    if (currentTime - lastTime >= 1000.0f) {
-        FPS = counter;
-        counter = 0;
-        static char winTitle [128];
-        unsigned int numOfTriangles = mesh.T.size ();
-        sprintf (winTitle, "Number Of Triangles: %d - FPS: %d", numOfTriangles, FPS);
-        glutSetWindowTitle (winTitle);
-        lastTime = currentTime;
-    }
-    glutPostRedisplay ();
-}
-
-int main (int argc, char ** argv) {
-    glutInit (&argc, argv); // Initialize a glut app
-    glutInitDisplayMode (GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE); // Setup a RGBA framebuffer to display, with a depth buffer (z-buffer), in double buffer mode (fill a buffer then update the screen)
-    glutInitWindowSize (DEFAULT_SCREENWIDTH, DEFAULT_SCREENHEIGHT); // Set the window app size on screen
-    window = glutCreateWindow (appTitle.c_str ()); // create the window
-    if (argc > 1)
-        init (argv[1]); // Your initialization code (OpenGL states, geometry, material, lights, etc)
-    else
-        init (DEFAULT_SCENE_FILENAME);
-    glutReshapeFunc (reshape); // Callback function executed whenever glut need to setup the projection matrix
-    glutDisplayFunc (display); // Callback function executed when the window app need to be redrawn
-    glutKeyboardFunc (keyboard); // Callback function executed when the keyboard is used
-    glutMouseFunc (mouse); // Callback function executed when a mouse button is clicked
-    glutMotionFunc (motion); // Callback function executed when the mouse move
-    glutIdleFunc (idle); // Callback function executed continuously when no other event happens (good for background procesing or animation for instance).
-    printUsage (); // By default, display the usage help of the program
-    glutMainLoop ();
-    return 0;
-}
+}*/
 
 // Some Emacs-Hints -- please don't remove:
 //
