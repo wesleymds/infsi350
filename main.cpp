@@ -13,9 +13,9 @@
 #include <cstring>
 #include <cstdlib>
 #include <cmath>
-#include <GL/glut.h>
+//#include <GL/glut.h>
 // Using for MacOS. Uncomment it.
-//#include <GLUT/glut.h>
+#include <GLUT/glut.h>
 #include "Vec3.h"
 #include "tiny_obj_loader.h"
 #include "Ray.h"
@@ -278,12 +278,12 @@ float reponseBRDF_GGX (Vertex v) {
 	vn = v.n;
 	vn.normalize();
 	
-	// Incident light (Light - V)
-	wi = light - v.p;
+	// Incident light
+	wi = lightPos - v.p;
 	wi.normalize();
 	
 	// Camera
-	camera.getPos(wo);
+	wo = polarToCartesian (camEyePolar);
 	
 	// HalfVector
 	wh = wi + wo;
