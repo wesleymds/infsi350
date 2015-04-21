@@ -13,9 +13,9 @@
 #include <cstring>
 #include <cstdlib>
 #include <cmath>
-#include <GL/glut.h>
+//#include <GL/glut.h>
 // Using for MacOS. Uncomment it.
-//#include <GLUT/glut.h>
+#include <GLUT/glut.h>
 #include "Vec3.h"
 #include "tiny_obj_loader.h"
 #include "Ray.h"
@@ -252,25 +252,71 @@ void displayRayImage () {
 
 // Test if a a point of the scene (v) is occulted by any triangle
 // in a epsilon interval
-/*bool isDirectedOcculted (Vertex v, float epsilon) {
-    // Light ray from v
-    Vec3f lightRay = lightPos - v.p;
+bool isDirectedOcculted (Vertex v, float epsilon) {
+	// Light ray from v
+	Ray lightRay(v.p, lightPos);
 
-    const Vertex v1, v2, v3, intersecV;
     Vec3f intersecT;
-    // Check intersection with all triangles of the mesh with lightRay
-    for (unsigned int i = 0; i < mesh.T.size (); i++) {
-        v1 = mesh.V[mesh.T[i].v[0]];
-        v2 = mesh.V[mesh.T[i].v[1]];
-        v3 = mesh.V[mesh.T[i].v[2]];
-        if (rayTriangleIntersection(v1.p, v2.p, v3.p, intersecT))
-            if (dist(intersecT, v.p) < epsilon)
-                // If there is an intersection with distance < epsilon
-                return false;
-    }
+	// Check it there is an intersection between lightRay and a point of the scene
+	if (lightRay.raySceneIntersection(mesh, intersecT))
+		// If the intersection is in a distance < epsilon
+		if (dist(intersecT, v.p) < epsilon)
+			return true;
+	
+	return false;
+}
 
-    return true;
-}*/
+// Compute the BRDF GGX model of light response in a vertice
+float reponseBRDF_GGX (Vertex v) {
+	// Parameters in equations
+	float res, fd, fs, d, roughness, alpha, aux, f, g, f0, gi, go;
+	Vec3f wi, vn, wo, wh;
+	
+	// Alpha term (roughness)
+	roughness = 0.5; // replace by 1/materials[i].shininess
+	alpha = pow(roughness, 2.0);
+	
+	// Normal of V
+	vn = v.n;
+	vn.normalize();
+	
+	// Incident light
+	wi = lightPos - v.p;
+	wi.normalize();
+	
+	// Camera
+	wo = polarToCartesian (camEyePolar);
+	
+	// HalfVector
+	wh = wi + wo;
+	wh.normalize();
+	
+	// D(wi, wo): GGX distribution
+	aux = 1 + (pow(alpha, 2.0) - 1.0) * pow(dot(vn, wh), 2.0);
+	d = pow(alpha, 2.0) / (M_PI * pow(aux, 2.0));
+	
+	// F(wi, wh): Fernel term
+	f0 = 0.91; // replace by the reflexion coef materials[i].?
+	aux = dot(wi, wh);
+	if (aux < 0)
+		aux = 0;
+	f = f0 + (1 - f0) * pow((1 - aux), 5.0);
+	
+	// G(wi, w0): Geometric term
+	aux = pow(alpha, 2.0) + (1 - pow(alpha, 2.0) * pow(dot(vn, wi), 2.0));
+	gi = (2 * dot(vn, wi)) / (dot(vn, wi) + sqrt(aux));
+	aux = pow(alpha, 2.0) + (1 - pow(alpha, 2.0) * pow(dot(vn, wo), 2.0));
+	go = (2 * dot(vn, wo)) / (dot(vn, wo) + sqrt(aux));
+	g = gi * go;
+	
+	fd = 1.0 / M_PI; // Diffuse term
+	fs = (d * f * g) / (4 * dot(vn, wi) * dot(vn, wo)); // Specular term
+	
+	// Final response
+	res = 1 * (fd + fs) * dot(vn, wi);
+	
+	return res;
+}
 
 // MAIN FUNCTION TO CHANGE !
 void rayTrace () {    
