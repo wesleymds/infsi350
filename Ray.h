@@ -13,9 +13,10 @@ using namespace std;
 class Ray {
 private:
     static const float epsilon;
-
     const Vec3f origin;
     Vec3f direction;
+
+
 public:
     Ray() {}
 

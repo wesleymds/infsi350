@@ -145,8 +145,8 @@ public:
     }
 
     inline void set_mesh(std::vector<tinyobj::shape_t>& _shapes, const std::vector<tinyobj::material_t>& _materials) {
-        V.clear();
-        T.clear();
+        /*V.clear();
+        T.clear();*/
         shapes = _shapes;
         materials = _materials;
         regenerate_from_obj();

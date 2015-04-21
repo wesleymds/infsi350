@@ -18,15 +18,15 @@
 //#include <GLUT/glut.h>
 #include "Vec3.h"
 #include "tiny_obj_loader.h"
-#include "Ray.h"
-
 #include "Mesh.h"
+#include "Engine.h"
 
 using namespace std;
 
 // App parameters
 static const unsigned int DEFAULT_SCREENWIDTH = 1024;
 static const unsigned int DEFAULT_SCREENHEIGHT = 768;
+static const float DEFAULT_FOVANGLE = 45.f;
 static const char * DEFAULT_SCENE_FILENAME = "scenes/cube/cube.obj";
 static string appTitle ("MCRT - Monte Carlo Ray Tracer");
 static GLint window;
@@ -42,7 +42,6 @@ static float nearPlane;
 static float farPlane;
 static Vec3f camEyePolar; // Expressing the camera position in polar coordinate, in the frame of the target
 static Vec3f camTarget;
-static Vec3f up = Vec3f (0.f, 1.f, 0.f);
 
 // Scene elements
 static Vec3f lightPos = Vec3f (1.f, 1.f, 1.f);
@@ -51,8 +50,6 @@ static Vec3f sceneCenter = Vec3f (0.f, 0.f, 0.f);
 static float sceneRadius = 1.f;
 static vector<tinyobj::shape_t> shapes;
 static vector<tinyobj::material_t> materials;
-
-static Mesh mesh;
 
 // Mouse parameters
 static bool mouseLeftButtonClicked = false;
@@ -63,7 +60,17 @@ static float baseCamTheta;
 // Raytraced image
 static unsigned char * rayImage = NULL;
 
-const float Ray::epsilon(0.00000001);
+//Engine settings
+Mesh mesh;
+Engine engine(DEFAULT_FOVANGLE,
+              DEFAULT_SCREENWIDTH/DEFAULT_SCREENHEIGHT,
+              Vec3f(0.f, 1.f, 0.f),
+              nearPlane,
+              sceneCenter,
+              DEFAULT_SCREENWIDTH,
+              DEFAULT_SCREENHEIGHT,
+              mesh
+              );
 
 void printUsage () {
     std::cerr << std::endl // send a line break to the standard error output
@@ -157,13 +164,13 @@ bool loadScene(const string & filename, const string & basepath = "") {
     computeSceneNormals ();
     computeSceneBoundingSphere ();
 
-    mesh.set_mesh(shapes, materials);
-    mesh.show_properties();
+    engine.mesh.set_mesh(shapes, materials);
+    engine.mesh.show_properties();
     return true;
 }
 
 void initCamera () {
-    fovAngle = 45.f;
+    fovAngle = DEFAULT_FOVANGLE;
     nearPlane = sceneRadius/10000.0f;
     farPlane = 10*sceneRadius;
     camTarget = sceneCenter;
@@ -318,21 +325,20 @@ float reponseBRDF_GGX (Vertex v) {
 }
 
 // MAIN FUNCTION TO CHANGE !
-void rayTrace () {    
-    cout << "RayTrace start" << endl;
-    Vec3f eye = polarToCartesian(camEyePolar);
+void rayTrace () {
+    engine.rayTrace(camEyePolar, rayImage);
+
+    /*Vec3f eye = polarToCartesian(camEyePolar);
     swap (eye[1], eye[2]);
     eye += camTarget;
 
-    cout << eye << endl;
-    cout << sceneCenter << endl;
     Vec3f w = eye - sceneCenter;
     w.normalize();
     Vec3f u = cross(up, w);
     u.normalize();
-    Vec3f v = cross(w, u);
+    Vec3f v = cross(w, u);*/
 
-    float distance(nearPlane);
+    /*float distance(nearPlane);
     Vec3f c = eye - w * distance;
     float height = 2.f * distance * tan(fovAngle / 2.f);
     float width = height * aspectRatio;
@@ -340,9 +346,9 @@ void rayTrace () {
     float dx = width / (screenWidth - 1);
     float dy = height / (screenHeight - 1);
     Vec3f location;
-    unsigned int ind(0);
+    unsigned int ind(0);*/
 
-    Vec3f add, rayDir;
+    /*Vec3f add, rayDir;
     Ray ray(eye);
     Vec3f intersect;
 
@@ -360,9 +366,9 @@ void rayTrace () {
             }
             else rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 0;
         }
-    }
+    }*/
 
-    cout << "RayTrace finish" << endl;
+
 }
 
 void display () {  
@@ -439,7 +445,7 @@ void idle () {
         FPS = counter;
         counter = 0;
         static char winTitle [128];
-        unsigned int numOfTriangles = mesh.T.size ();
+        unsigned int numOfTriangles = engine.mesh.T.size ();
         sprintf (winTitle, "Number Of Triangles: %d - FPS: %d", numOfTriangles, FPS);
         glutSetWindowTitle (winTitle);
         lastTime = currentTime;
