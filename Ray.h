@@ -6,7 +6,7 @@
 #include "Mesh.h"
 #include "tiny_obj_loader.h"
 
-#define ivtri(i, tri) &(scene.V[tri.v[i]].p)
+#define ivtri(i, tri) (scene.V[tri.v[i]].p)
 
 using namespace std;
 
@@ -60,17 +60,28 @@ public:
         return 0;
     }
 
-    int raySceneIntersection(const Mesh& scene, Vec3f& out) {
-        const Vec3f* p0;
-        const Vec3f* p1;
-        const Vec3f* p2;
+    int raySceneIntersection(const Mesh& scene, Vec3f& eye, Vec3f& out) {
+        Vec3f p0;
+        Vec3f p1;
+        Vec3f p2;
+        int e(1000000), d;
+        Vec3f intersect;
+        bool isIntersect(false);
         for(auto tri: scene.T) {
             p0 = ivtri(0, tri);
             p1 = ivtri(1, tri);
             p2 = ivtri(2, tri);
-            if(rayTriangleIntersection(*p0, *p1, *p2, out) == 1) return 1;
+            //cout << p0 << "|" << p1 << "|" << p2 << endl;
+            if(rayTriangleIntersection(p0, p1, p2, intersect) == 1) {
+                isIntersect = true;
+                d = (eye - intersect).length();
+                if(d < e) {
+                    e = d;
+                    out = intersect;
+                }
+            }
         }
-        return 0;
+        return isIntersect ? 1 : 0;
     }
 
     ///TODO

@@ -42,6 +42,7 @@ static float nearPlane;
 static float farPlane;
 static Vec3f camEyePolar; // Expressing the camera position in polar coordinate, in the frame of the target
 static Vec3f camTarget;
+static Vec3f up = Vec3f (0.f, 1.f, 0.f);
 
 // Scene elements
 static Vec3f lightPos = Vec3f (1.f, 1.f, 1.f);
@@ -62,7 +63,7 @@ static float baseCamTheta;
 // Raytraced image
 static unsigned char * rayImage = NULL;
 
-const float Ray::epsilon(0.001);
+const float Ray::epsilon(0.00000001);
 
 void printUsage () {
     std::cerr << std::endl // send a line break to the standard error output
@@ -162,7 +163,7 @@ bool loadScene(const string & filename, const string & basepath = "") {
 }
 
 void initCamera () {
-    fovAngle = 135.f;
+    fovAngle = 45.f;
     nearPlane = sceneRadius/10000.0f;
     farPlane = 10*sceneRadius;
     camTarget = sceneCenter;
@@ -218,6 +219,7 @@ void reshape (int w, int h) {
 void rasterize () {
     setupCamera ();
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Erase the color and z buffers.
+    //glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
     glBegin (GL_TRIANGLES);
     glColor3f (1.f, 1.f, 1.f);
     for (size_t s = 0; s < shapes.size (); s++)
@@ -272,81 +274,221 @@ void displayRayImage () {
 
 // MAIN FUNCTION TO CHANGE !
 void rayTrace () {    
-    Vec3f eye = polarToCartesian(camEyePolar);
-    cout << eye << endl;
-    Vec3f w = sceneCenter - eye;
+    cout << "RayTrace start" << endl;
+    /*Vec3f eye = polarToCartesian(camEyePolar);
+    swap (eye[1], eye[2]);
+    eye += camTarget;*/
+    Vec3f eye(3.f, 3.f, 3.f);
+    Vec3f w = eye - sceneCenter;
     w.normalize();
-    Vec3f b(0.f, 1.f, 0.f);
-    Vec3f u = cross(b, w);
+    Vec3f u = cross(up, w);
     u.normalize();
     Vec3f v = cross(w, u);
-    v.normalize();
-    float fovH = 2.f * atan(tan((fovAngle * M_PI) / 360.f) * aspectRatio);
+
+    float distance(nearPlane);
+    Vec3f c = eye - w * distance;
+    float height = 2.f * distance * tan(fovAngle / 2.f);
+    float width = height * aspectRatio;
+    Vec3f l = c - u * (width / 2.f) - v * (height / 2.f);
+    float dx = width / screenWidth;
+    float dy = height / screenHeight;
+    Vec3f location;
+    unsigned int ind(0);
+
+    //float fovH = 2 * fovAngle * aspectRatio; //2.f * atan(tan((fovAngle * M_PI) / 360.f) * aspectRatio);
     float alpha, beta;
     Vec3f add, rayDir;
     Ray ray(eye);
     Vec3f intersect;
-    unsigned int ind;
-    cout << "u=" << u << endl;
-    cout << "w=" << w << endl;
-    cout << "v=" << v << endl;
 
-    ///TODO ray trace http://www1.cs.columbia.edu/~cs4162/slides/lecture16.pdf
-    for (unsigned int  i = 0; i < screenHeight; i++) {
-        beta = tan(fovAngle/2.f) * (((screenHeight/2.f) - i)/(screenHeight/2.f));
-        for (unsigned int j = 0; j < screenWidth; j++) {
-            alpha = tan(fovH/2.f) * ((j - (screenWidth/2.f))/(screenWidth/2.f));
-            add = u * alpha + v * beta - w;
-            //add.normalize();
-            rayDir = add;
-            rayDir.normalize();
-            //cout << "raDIr="<< rayDir << endl;
+    /*ray.setDirection(c - eye);
+    cout << ray.raySceneIntersection(mesh, eye, intersect) << endl;*/
+
+    for (unsigned int i = 0; i < screenHeight; ++i)
+    {
+        for (unsigned int j = 0; j < screenWidth; ++j)
+        {
+            location = l + u * i * dx + v * j * dy + u * (dx / 2.f) + v * (dy / 2.f);
+            rayDir = location - eye;
             ray.setDirection(rayDir);
             ind = 3*(j+i*screenWidth);
-            if (ray.raySceneIntersection(mesh, intersect) == 1) {
-                rayImage[ind] = 255;//abs(alpha)*255;
-                rayImage[ind+1] = intersect[1];//abs(beta)*255;
-                rayImage[ind+2] = intersect[2];//255;
-                //rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 255;
+            if (ray.raySceneIntersection(mesh, eye, intersect) == 1) {
+                rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 255;
             }
-            else rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 30;
+            else rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 0;
         }
     }
+
+    cout << "RayTrace finish" << endl;
 }
 
 void drawRays() {
-    Vec3f eye = polarToCartesian(camEyePolar);
-    Vec3f w = sceneCenter - eye;
+    setupCamera();
+    /*Vec3f eye = polarToCartesian(camEyePolar);
+    swap (eye[1], eye[2]);
+    eye += camTarget;*/
+    Vec3f eye(3.f, 3.f, 3.f);
+    Vec3f w = eye - sceneCenter;
     w.normalize();
-    Vec3f b(0.f, 1.f, 0.f);
-    Vec3f u = cross(b, w);
+    Vec3f u = cross(up, w);
     u.normalize();
     Vec3f v = cross(w, u);
-    float fovH = 2.f * atan(tan((fovAngle * M_PI) / 360.f) * aspectRatio);
+
+    float distance(nearPlane);
+    Vec3f c = eye - w * distance;
+    float height = 2.f * distance * tan(fovAngle / 2.f);
+    float width = height * aspectRatio;
+    Vec3f l = c - u * (width / 2.f) - v * (height / 2.f);
+    float dx = width / screenWidth;
+    float dy = height / screenHeight;
+    Vec3f location;
+
+    //float fovH = 2 * fovAngle * aspectRatio; //2.f * atan(tan((fovAngle * M_PI) / 360.f) * aspectRatio);
     float alpha, beta;
     Vec3f add, rayDir;
     Ray ray(eye);
     Vec3f intersect;
+    Vec3f center(0.f, 0.f, 0.f);
 
-    ///TODO ray trace http://www1.cs.columbia.edu/~cs4162/slides/lecture16.pdf
-    setupCamera ();
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Erase the color and z buffers.
-    glColor3f (1.f, 1.f, 1.f);
+    glLineWidth(5.f);
     glBegin(GL_LINES);
-    for (unsigned int  j = 0; j < screenHeight; j++) {
-        alpha = tan(fovH/2.f) * ((j - (screenWidth/2.f))/(screenWidth/2.f));
-        for (unsigned int i = 0; i < screenWidth; i++) {
-            beta = tan(fovAngle/2.f) * (((screenHeight/2.f) - i)/(screenHeight/2.f));
-            add = alpha * u + beta * v - w;
-            add.normalize();
-            rayDir = Vec3f(1.f, 1.f, 1.f) - eye;
-            ray.setDirection(rayDir);
-            //if (ray.raySceneIntersection(mesh, intersect) == 1) cout << 1 << endl;
+    glColor3f (255, 0, 0);
+    glVertex3f(center[0], center[1], center[2]);
+    glVertex3f(w[0], w[1], w[2]);
+    glColor3f (0, 255, 0);
+    glVertex3f(center[0], center[1], center[2]);
+    glVertex3f(u[0], u[1], u[2]);
+    glColor3f (0, 0, 255);
+    glVertex3f(center[0], center[1], center[2]);
+    glVertex3f(v[0], v[1], v[2]);
+
+    for (unsigned int i = 0; i < screenHeight; ++i)
+    {
+        for (unsigned int j = 0; j < screenWidth; ++j)
+        {
+            location = l + u * i * dx + v * j * dy;
+            glColor3f (50, 206, 0);
+            glVertex3f(eye[0], eye[1], eye[2]);
+            location += (location - eye) * 10000.f;
+            glVertex3f(location[0], location[1], location[2]);
         }
     }
-    glVertex3f(eye[0], eye[1], eye[2]);
-    glVertex3f(rayDir[0], rayDir[1], rayDir[2]);
+
     glEnd();
+
+    /*Vec3f center(0.f, 0.f, 0.f);
+    center = sceneCenter;
+
+    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Erase the color and z buffers.
+    glColor3f (255, 0, 0);
+    glLineWidth(5.f);
+    glBegin(GL_LINES);
+    glVertex3f(eye[0], eye[1], eye[2]);
+    w = eye - sceneCenter;
+    Vec3f a;
+    a = sceneCenter + w * 0.9f;//((sceneRadius - nearPlane) / sceneRadius );
+    glVertex3f(a[0], a[1], a[2]);
+    glVertex3f(center[0], center[1], center[2]);
+    glVertex3f(eye[0], eye[1], eye[2]);
+    glVertex3f(center[0], center[1], center[2]);
+    glVertex3f(sceneCenter[0], sceneCenter[1], sceneCenter[2]);
+    glColor3f (0, 255, 0);
+    glVertex3f(center[0], center[1], center[2]);
+    glVertex3f(w[0], w[1], w[2]);
+    glColor3f (0, 0, 255);
+    glVertex3f(center[0], center[1], center[2]);
+    glVertex3f(b[0], b[1], b[2]);
+    glColor3f (0, 255, 255);
+    glVertex3f(center[0], center[1], center[2]);
+    glVertex3f(u[0], u[1], u[2]);
+    glColor3f (255, 255, 255);
+    glVertex3f(center[0], center[1], center[2]);
+    glVertex3f(v[0], v[1], v[2]);
+    glColor3f (255, 255, 0);
+    glVertex3f(center[0], center[1], center[2]);
+    glVertex3f(eye[0], eye[1], eye[2]);
+
+    beta = (tan(fovAngle/2.f)) * (((screenHeight/2.f) - 0)/(screenHeight/2.f));
+    alpha = (tan(fovH/2.f)) * ((0 - (screenWidth/2.f))/(screenWidth/2.f));
+    add = u * alpha + v * beta;
+    add.normalize();
+    glColor3f (255, 0, 255);
+    glVertex3f(center[0], center[1], center[2]);
+    glVertex3f(add[0], add[1], add[2]);
+
+    glColor3f (50, 206, 0);
+    glVertex3f(eye[0], eye[1], eye[2]);
+    glVertex3f(add[0], add[1], add[2]);
+
+    beta = (tan(fovAngle/2.f)) * (((screenHeight/2.f) - screenHeight)/(screenHeight/2.f));
+    alpha = (tan(fovH/2.f)) * ((screenWidth - (screenWidth/2.f))/(screenWidth/2.f));
+    add = u * alpha + v * beta;
+    add.normalize();
+    glColor3f (255, 0, 255);
+    glVertex3f(center[0], center[1], center[2]);
+    glVertex3f(add[0], add[1], add[2]);
+
+    glColor3f (50, 206, 0);
+    glVertex3f(eye[0], eye[1], eye[2]);
+    glVertex3f(add[0], add[1], add[2]);
+
+    beta = (tan(fovAngle/2.f)) * (((screenHeight/2.f) - screenHeight)/(screenHeight/2.f));
+    alpha = (tan(fovH/2.f)) * ((0 - (screenWidth/2.f))/(screenWidth/2.f));
+    add = u * alpha + v * beta;
+    add.normalize();
+    glColor3f (255, 0, 255);
+    glVertex3f(center[0], center[1], center[2]);
+    glVertex3f(add[0], add[1], add[2]);
+
+    glColor3f (50, 206, 0);
+    glVertex3f(eye[0], eye[1], eye[2]);
+    glVertex3f(add[0], add[1], add[2]);
+
+    beta = (tan(fovAngle/2.f)) * (((screenHeight/2.f) - 0)/(screenHeight/2.f));
+    alpha = (tan(fovH/2.f)) * ((screenWidth - (screenWidth/2.f))/(screenWidth/2.f));
+    add = u * alpha + v * beta;
+    add.normalize();
+    glColor3f (255, 0, 255);
+    glVertex3f(center[0], center[1], center[2]);
+    glVertex3f(add[0], add[1], add[2]);
+
+    glColor3f (50, 206, 0);
+    glVertex3f(eye[0], eye[1], eye[2]);
+    glVertex3f(add[0], add[1], add[2]);
+
+    beta = (tan(fovAngle/2.f)) * (((screenHeight/2.f) - 100)/(screenHeight/2.f));
+    alpha = (tan(fovH/2.f)) * ((100 - (screenWidth/2.f))/(screenWidth/2.f));
+    add = u * alpha + v * beta;
+    add.normalize();
+    glColor3f (255, 0, 255);
+    glVertex3f(center[0], center[1], center[2]);
+    glVertex3f(add[0], add[1], add[2]);
+
+    glColor3f (50, 206, 0);
+    glVertex3f(eye[0], eye[1], eye[2]);
+    glVertex3f(add[0], add[1], add[2]);
+
+    for (unsigned int i = 0; i < screenHeight; ++i)
+    {
+        for (unsigned int j = 0; j < screenWidth; ++j)
+        {
+            beta = (tan(fovAngle/2.f)) * (((screenHeight/2.f) - i)/(screenHeight/2.f));
+            alpha = (tan(fovH/2.f)) * ((j - (screenWidth/2.f))/(screenWidth/2.f));
+            add = u * alpha + v * beta;
+            add.normalize();
+            glColor3f (50, 206, 0);
+            glVertex3f(eye[0], eye[1], eye[2]);
+            glVertex3f(add[0], add[1], add[2]);
+        }
+    }
+
+    glEnd();*/
+
+    //cout << "dot(add,w)=" << dot(add,w) << endl;
+
+    //cout << "dot(u,w)=" << dot(u,w) << "dot(u,v)=" << dot(u,v) << "dot(v,w)=" << dot(v,w) << endl;
+
     glBegin(GL_TRIANGLES);
     for (unsigned int i = 0; i < mesh.T.size (); i++)
         for (unsigned int j = 0; j < 3; j++) {
