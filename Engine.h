@@ -10,9 +10,9 @@ const float Ray::epsilon(0.00000001);
 
 class Engine {
 private:
-    const float height;
-    const float width;
-    const float dx, dy;
+    float height;
+    float width;
+    float dx, dy;
 
     unsigned char* rayImage;
 
@@ -44,13 +44,7 @@ public:
           up(up),
           screenWidth(screenWidth),
           screenHeight(screenHeight),
-          mesh(mesh),
-          //height = 2.f * distance * tan(fovAngle / 2.f);
-          //distance == 1;
-          height(2.f * tan(fovAngle / 2.f)),
-          width(height * aspectRatio),
-          dx(width / (screenWidth - 1)),
-          dy(height / (screenHeight - 1))
+          mesh(mesh)
     {}
 
     inline Vec3f getWorldCam(const Vec3f& camEyePolar) {
@@ -64,6 +58,13 @@ public:
     void rayTrace(const Vec3f& camEyePolar, unsigned char* rayImage) {
         cout << "RayTrace start" << endl;
 
+        height = (2.f * nearPlane * tan(fovAngle / 2.f));
+        //nearPlane == 1;
+        //height(2.f * tan(fovAngle / 2.f)),
+        width = height * aspectRatio;
+        dx = width / (screenWidth - 1);
+        dy = height / (screenHeight - 1);
+
         Vec3f eye(getWorldCam(camEyePolar));
 
         w = eye - sceneCenter;
@@ -72,14 +73,16 @@ public:
         u.normalize();
         v = cross(w, u);
 
-        //c = eye - w * distance;
-        //distance == 1
-        c = eye - w;
+        c = eye - w * nearPlane;
+        //nearPlane == 1
+        //c = eye - w;
         l = c - (u * (width / 2.f)) - (v * (height / 2.f));
-        Ray ray(mesh, eye);
+        Ray ray(mesh, eye, sceneCenter);
         Vec3f rayDir, location;
         Vertex intersect;
         int ind(0);
+
+        cout << nearPlane << endl;
 
         for (unsigned int i = 0; i < screenHeight; ++i)
         {
@@ -92,7 +95,7 @@ public:
                 if (ray.raySceneIntersection(eye, intersect) == 1) {
                     /*rayImage[ind+2] = 255;
                     rayImage[ind] = rayImage[ind+1] = 255 / (eye-intersect).length();*/
-                    const Vec3f colorResponse = ray.evaluateResponse(intersect);
+                    const Vec3f colorResponse = ray.evaluateResponse(intersect, eye);
                     for(auto i = 0; i < 3; ++i) rayImage[ind + i] = colorResponse[i];
                 }
                 else {

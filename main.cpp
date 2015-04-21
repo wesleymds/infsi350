@@ -44,7 +44,8 @@ static Vec3f camEyePolar; // Expressing the camera position in polar coordinate,
 static Vec3f camTarget;
 
 // Scene elements
-static Vec3f lightPos = Vec3f (1.f, 1.f, 1.f);
+//static Vec3f lightPos = Vec3f (1.f, 1.f, 1.f);
+static Vec3f lightPos = Vec3f (340.f, 500.f, 225.f);
 static Vec3f lightColor = Vec3f (1.f, 1.f, 1.f);
 static Vec3f sceneCenter = Vec3f (0.f, 0.f, 0.f);
 static float sceneRadius = 1.f;
@@ -273,7 +274,7 @@ void displayRayImage () {
 }*/
 
 // Compute the BRDF GGX model of light response in a vertice
-float reponseBRDF_GGX (Vertex v) {
+/*float reponseBRDF_GGX (Vertex v) {
 	// Parameters in equations
 	float res, fd, fs, d, roughness, alpha, aux, f, g, f0, gi, go;
 	Vec3f wi, vn, wo, wh;
@@ -322,7 +323,7 @@ float reponseBRDF_GGX (Vertex v) {
 	res = 1 * (fd + fs) * dot(vn, wi);
 	
 	return res;
-}
+}*/
 
 // MAIN FUNCTION TO CHANGE !
 void rayTrace () {

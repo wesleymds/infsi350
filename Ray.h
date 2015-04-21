@@ -16,15 +16,16 @@ private:
     static const float epsilon;
     const Vec3f origin;
     Vec3f direction;
+    const Vec3f& sceneCenter;
 
     Mesh& mesh;
 public:
-    Ray(const Vec3f& origin, const Vec3f& direction, Mesh& mesh)
-        : origin(origin), direction(direction), mesh(mesh)
+    Ray(const Vec3f& origin, const Vec3f& direction, Mesh& mesh, const Vec3f& sceneCenter)
+        : origin(origin), direction(direction), mesh(mesh), sceneCenter(sceneCenter)
     {}
 
-    Ray(Mesh& mesh, const Vec3f& origin)
-        : origin(origin), mesh(mesh)
+    Ray(Mesh& mesh, const Vec3f& origin, const Vec3f& sceneCenter)
+        : origin(origin), mesh(mesh), sceneCenter(sceneCenter)
     {}
 
     void setDirection(const Vec3f& _direction) {
@@ -86,9 +87,9 @@ public:
         return isIntersect ? 1 : 0;
     }
 
-    Vec3f evaluateResponse(const Vertex& intersect) {
-        static Brdf brdf(mesh);
-        return brdf.reponseBRDF_GGX(intersect);
+    Vec3f evaluateResponse(const Vertex& intersect, const Vec3f& camEye) {
+        static Brdf brdf(mesh, sceneCenter);
+        return brdf.reponseBRDF_GGX(intersect, camEye);
     }
 
 };
