@@ -38,6 +38,7 @@ public:
     }
     Vec3f p;
     Vec3f n;
+    int material_id;
 };
 
 class Triangle {
@@ -95,7 +96,6 @@ private:
                 T.push_back(tri);
             }
         }
-
         /*centerAndScaleToUnit();
 
         recomputeNormals();*/
@@ -145,8 +145,8 @@ public:
     }
 
     inline void set_mesh(std::vector<tinyobj::shape_t>& _shapes, const std::vector<tinyobj::material_t>& _materials) {
-        /*V.clear();
-        T.clear();*/
+        V.clear();
+        T.clear();
         shapes = _shapes;
         materials = _materials;
         regenerate_from_obj();
@@ -161,9 +161,11 @@ public:
     }
 
     tinyobj::material_t& material(unsigned int tri) {
-        if (!materials.empty ()) {
-            return materials[T[tri].material_id];
-        }
+        return materials[T[tri].material_id];
+    }
+
+    tinyobj::material_t& material(const Vertex& v) {
+        return materials[v.material_id];
     }
 };
 

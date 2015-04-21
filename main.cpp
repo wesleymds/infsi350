@@ -27,7 +27,7 @@ using namespace std;
 static const unsigned int DEFAULT_SCREENWIDTH = 1024;
 static const unsigned int DEFAULT_SCREENHEIGHT = 768;
 static const float DEFAULT_FOVANGLE = 45.f;
-static const char * DEFAULT_SCENE_FILENAME = "scenes/cube/cube.obj";
+static const char * DEFAULT_SCENE_FILENAME = "scenes/cornell_box/cornell_box.obj";
 static string appTitle ("MCRT - Monte Carlo Ray Tracer");
 static GLint window;
 static unsigned int screenWidth;
@@ -327,8 +327,8 @@ float reponseBRDF_GGX (Vertex v) {
 // MAIN FUNCTION TO CHANGE !
 void rayTrace () {
     engine.rayTrace(camEyePolar, rayImage);
-
-    /*Vec3f eye = polarToCartesian(camEyePolar);
+    /*Vec3f up (0.f, 1.f, 0.f);
+    Vec3f eye = polarToCartesian(camEyePolar);
     swap (eye[1], eye[2]);
     eye += camTarget;
 
@@ -336,9 +336,9 @@ void rayTrace () {
     w.normalize();
     Vec3f u = cross(up, w);
     u.normalize();
-    Vec3f v = cross(w, u);*/
+    Vec3f v = cross(w, u);
 
-    /*float distance(nearPlane);
+    float distance(nearPlane);
     Vec3f c = eye - w * distance;
     float height = 2.f * distance * tan(fovAngle / 2.f);
     float width = height * aspectRatio;
@@ -346,9 +346,9 @@ void rayTrace () {
     float dx = width / (screenWidth - 1);
     float dy = height / (screenHeight - 1);
     Vec3f location;
-    unsigned int ind(0);*/
+    unsigned int ind(0);
 
-    /*Vec3f add, rayDir;
+    Vec3f add, rayDir;
     Ray ray(eye);
     Vec3f intersect;
 
@@ -366,9 +366,8 @@ void rayTrace () {
             }
             else rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 0;
         }
-    }*/
-
-
+    }
+*/
 }
 
 void display () {  

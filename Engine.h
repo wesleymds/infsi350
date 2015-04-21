@@ -4,6 +4,7 @@
 #include "Vec3.h"
 #include "Ray.h"
 #include "Mesh.h"
+#include "Engine.h"
 
 const float Ray::epsilon(0.00000001);
 
@@ -59,8 +60,10 @@ public:
         return eye;
     }
 
+
     void rayTrace(const Vec3f& camEyePolar, unsigned char* rayImage) {
         cout << "RayTrace start" << endl;
+
         Vec3f eye(getWorldCam(camEyePolar));
 
         w = eye - sceneCenter;
@@ -73,9 +76,9 @@ public:
         //distance == 1
         c = eye - w;
         l = c - (u * (width / 2.f)) - (v * (height / 2.f));
-        Ray ray(eye);
+        Ray ray(mesh, eye);
         Vec3f rayDir, location;
-        Vec3f intersect;
+        Vertex intersect;
         int ind(0);
 
         for (unsigned int i = 0; i < screenHeight; ++i)
@@ -86,15 +89,18 @@ public:
                 rayDir = location - eye;
                 ray.setDirection(rayDir);
                 ind = 3*(j+i*screenWidth);
-                if (ray.raySceneIntersection(mesh, eye, intersect) == 1) {
-                    rayImage[ind+2] = 255;
-                    rayImage[ind] = rayImage[ind+1] = 255 / (eye-intersect).length();
+                if (ray.raySceneIntersection(eye, intersect) == 1) {
+                    /*rayImage[ind+2] = 255;
+                    rayImage[ind] = rayImage[ind+1] = 255 / (eye-intersect).length();*/
+                    const Vec3f colorResponse = ray.evaluateResponse(intersect);
+                    for(auto i = 0; i < 3; ++i) rayImage[ind + i] = colorResponse[i];
                 }
                 else {
                     rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 0;
                 }
             }
         }
+
         cout << "RayTrace finish" << endl;
     }
 };
