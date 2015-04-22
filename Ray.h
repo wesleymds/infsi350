@@ -89,9 +89,9 @@ public:
 
 
     Vec3f evaluateResponse(const Vertex& intersect, const Vec3f& camEye) {
-//		Vec3f lightPos = Vec3f (340.f, 450.f, 225.f);
-//		// Light ray from v
-//		Ray lightRay(intersect.p, lightPos, mesh, sceneCenter);
+		Vec3f lightPos = Vec3f (340.f, 450.f, 225.f);
+		// Light ray from v
+		Ray lightRay(intersect.p, lightPos, mesh, sceneCenter);
 //
 //		Vertex v;
 //		float epsilon = 0.5;

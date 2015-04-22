@@ -177,7 +177,7 @@ void initCamera () {
     nearPlane = sceneRadius/10000.0f;
     farPlane = 10*sceneRadius;
     camTarget = sceneCenter;
-    camEyePolar = Vec3f (2.f * sceneRadius, M_PI/2.f, M_PI/2.f);
+    camEyePolar = Vec3f (2.f * sceneRadius, 3.f * M_PI/2.f, M_PI/2.f);
 }
 
 void initLighting () {
