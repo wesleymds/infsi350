@@ -28,14 +28,19 @@ public:
         : origin(origin), direction(direction), mesh(mesh)
     {
         for(auto i = 0; i < 3; ++i) idirection[i] = 1.f/direction[i];
-        sign[0] = idirection[0] < 0;
-        sign[1] = idirection[1] < 0;
-        sign[2] = idirection[2] < 0;
+        sign[0] = (idirection[0] < 0);
+        sign[1] = (idirection[1] < 0);
+        sign[2] = (idirection[2] < 0);
     }
 
     Ray(Mesh& mesh, const Vec3f& origin)
         : origin(origin), mesh(mesh)
-    {}
+    {
+        for(auto i = 0; i < 3; ++i) idirection[i] = 1.f/direction[i];
+        sign[0] = idirection[0] < 0;
+        sign[1] = idirection[1] < 0;
+        sign[2] = idirection[2] < 0;
+    }
 
     void setDirection(const Vec3f& _direction) {
         direction = _direction;
@@ -100,7 +105,7 @@ public:
     int rayBoxIntersection(const Box& box)
     {
         float tnear, tfar, tymin, tymax, tzmin, tzmax;
-        const Vec3f* coins = box.coins;
+        Vec3f coins[2] = box.coins;
 
         tnear = (coins[sign[0]][0] - origin[0]) * idirection[0];
         tfar = (coins[1-sign[0]][0] - origin[0]) * idirection[0];
@@ -128,6 +133,8 @@ public:
 
         if (tnear > this->tnear) this->tnear = tnear;
         if (tfar < this->tfar) this->tfar = tfar;
+
+        if (tfar < 0) return 0;
 
         return 1;
     }

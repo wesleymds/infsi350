@@ -167,15 +167,15 @@ void initKDTree() {
     node.buildKDTree(mesh, list, 0.f);*/
 
     Vec3f origin(0,10,0);
-    Vec3f direction(0,-1,0);
-    Ray r(origin, direction,mesh);
+    Vec3f direction(0, 1, 0);
+    Ray r(origin, direction, mesh);
 
     Box box;
     box.coins[0]=Vec3f(-1,-1,-1);
     box.coins[1]=Vec3f(1,1,1);
     int a = r.rayBoxIntersection(box);
 
-    cout<<"Test "<<a<<endl;
+    cout << "Test="<< a << endl;
 
 
     cout << "KDTreeConstruction finish" << endl;
