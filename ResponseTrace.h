@@ -1,29 +1,23 @@
-#ifndef BRDF_H
-#define BRDF_H
+#ifndef ResponseTrace_H
+#define ResponseTrace_H
 
 #include "Vec3.h"
 #include "Mesh.h"
 #include <algorithm>
 #include <vector>
+#include "Ray.h"
 
-class Brdf {
+class ResponseTrace {
 public:
     Mesh& mesh;
-    const Vec3f& sceneCenter;
+	Vec3f& lightPos;
 
-    Brdf(Mesh& mesh, const Vec3f& sceneCenter)
-        : mesh(mesh), sceneCenter(sceneCenter)
+    ResponseTrace(Mesh& mesh, Vec3f& lightPos)
+        : mesh(mesh), lightPos(lightPos)
     {}
 
-    inline Vec3f getWorldCam(const Vec3f& camEyePolar) {
-        Vec3f eye = polarToCartesian(camEyePolar);
-        std::swap (eye[1], eye[2]);
-        eye += sceneCenter;
-        return eye;
-    }
-
     // Compute the BRDF GGX model of light response in a vertice
-    Vec3f reponseBRDF_GGX (const Vertex& v, const Vec3f& eye) {
+    Vec3f responseBRDF_GGX (const Vertex& v, const Vec3f& eye) {
         // Parameters in equations
         float d, roughness, alpha, aux, g, gi, go;
         Vec3f wi, vn, wo, wh;
@@ -37,7 +31,6 @@ public:
         vn = v.n;
         vn.normalize();
 
-        Vec3f lightPos = Vec3f (340.f, 450.f, 225.f);
         // Incident light
         wi = lightPos - v.p;
         //wi = v.p - lightPos;
@@ -83,7 +76,39 @@ public:
 
         return res;
     }
+	
+	// Test if a a point of the scene (v) is occulted by any triangle
+	// in a epsilon interval
+	bool isDirectedOcculted (Ray& lightRay) {
+		
+		Vertex v1, v2, v3, intersect;
+		// Check intersection with all triangles of the mesh with lightRay
+		for (unsigned int i = 0; i < mesh.T.size (); i++) {
+			v1 = mesh.V[mesh.T[i].v[0]];
+			v2 = mesh.V[mesh.T[i].v[1]];
+			v3 = mesh.V[mesh.T[i].v[2]];
+			if (lightRay.rayTriangleIntersection(v1.p, v2.p, v3.p, intersect))
+				return true;
+		}
+		
+		return false;
+	}
+
+	
+	Vec3f evaluateResponse(const Vertex& v, const Vec3f& camEye) {
+		// Light ray from v
+		Vec3f direction = lightPos - v.p;
+		direction.normalize();
+		Ray lightRay(v.p, direction, mesh);
+		
+		if (isDirectedOcculted(lightRay))
+			return Vec3f (0.f, 0.f, 0.f);
+		else
+			return responseBRDF_GGX(v, camEye);
+	}
+
+	
 };
 
-#endif // BRDF_H
+#endif // ResponseTrace_H
 

@@ -5,7 +5,6 @@
 #include "Vec3.h"
 #include "Mesh.h"
 #include "tiny_obj_loader.h"
-#include "Brdf.h"
 
 #define ivtri(i, tri) (mesh.V[tri.v[i]].p)
 
@@ -16,16 +15,15 @@ private:
     static const float epsilon;
     const Vec3f origin;
     Vec3f direction;
-    const Vec3f& sceneCenter;
 
     Mesh& mesh;
 public:
-    Ray(const Vec3f& origin, const Vec3f& direction, Mesh& mesh, const Vec3f& sceneCenter)
-        : origin(origin), direction(direction), mesh(mesh), sceneCenter(sceneCenter)
+    Ray(const Vec3f& origin, const Vec3f& direction, Mesh& mesh)
+        : origin(origin), direction(direction), mesh(mesh)
     {}
 
-    Ray(Mesh& mesh, const Vec3f& origin, const Vec3f& sceneCenter)
-        : origin(origin), mesh(mesh), sceneCenter(sceneCenter)
+    Ray(Mesh& mesh, const Vec3f& origin)
+        : origin(origin), mesh(mesh)
     {}
 
     void setDirection(const Vec3f& _direction) {
@@ -80,31 +78,13 @@ public:
                     e = d;
                     out = intersect;
                     out.material_id = tri.material_id;
+					out.shapeName = tri.shapeName; // test
+					//cout << tri.shapeName << " " << tri.v[0] << endl;
                 }
             }
         }
         return isIntersect ? 1 : 0;
     }
-
-
-
-    Vec3f evaluateResponse(const Vertex& intersect, const Vec3f& camEye) {
-		Vec3f lightPos = Vec3f (340.f, 450.f, 225.f);
-		// Light ray from v
-		Ray lightRay(intersect.p, lightPos, mesh, sceneCenter);
-//
-//		Vertex v;
-//		float epsilon = 0.5;
-//		// Check it there is an intersection between lightRay and a point of the scene
-//		if (lightRay.raySceneIntersection(camEye, v))
-//			// If the intersection is in a distance < epsilon
-//			if (dist(v.p, intersect.p) > epsilon)
-//				return 0;
-		
-		static Brdf brdf(mesh, sceneCenter);
-		return brdf.reponseBRDF_GGX(intersect, camEye);
-    }
-
 };
 
 #endif // RAY_H

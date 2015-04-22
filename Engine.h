@@ -4,7 +4,7 @@
 #include "Vec3.h"
 #include "Ray.h"
 #include "Mesh.h"
-#include "Engine.h"
+#include "ResponseTrace.h"
 
 const float Ray::epsilon(0.00000001);
 
@@ -27,6 +27,8 @@ public:
     unsigned int screenWidth;
     unsigned int screenHeight;
     Mesh& mesh;
+	static Vec3f lightPosRendu;
+
 
     Engine(const float fovAngle,
            const float aspectRatio,
@@ -81,10 +83,12 @@ public:
 		c = eye - w;
 
         l = c - (u * (width / 2.f)) - (v * (height / 2.f));
-        Ray ray(mesh, eye, sceneCenter);
+        Ray ray(mesh, eye);
         Vec3f rayDir, location;
         Vertex intersect;
         int ind(0);
+		
+		ResponseTrace responseTrace(mesh, lightPosRendu);
 
         for (unsigned int i = 0; i < screenHeight; ++i)
         {
@@ -95,7 +99,7 @@ public:
                 rayDir = location - eye;
                 ray.setDirection(rayDir);
                 if (ray.raySceneIntersection(eye, intersect) == 1) {
-                    const Vec3f colorResponse = ray.evaluateResponse(intersect, eye);
+                    const Vec3f colorResponse = responseTrace.evaluateResponse(intersect, eye);
                     for(auto i = 0; i < 3; ++i) rayImage[ind + i] = colorResponse[i];
                 }
                 else {

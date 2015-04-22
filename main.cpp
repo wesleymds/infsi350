@@ -13,9 +13,9 @@
 #include <cstring>
 #include <cstdlib>
 #include <cmath>
-#include <GL/glut.h>
+//#include <GL/glut.h>
 // Using for MacOS. Uncomment it.
-//#include <GLUT/glut.h>
+#include <GLUT/glut.h>
 #include "Vec3.h"
 #include "tiny_obj_loader.h"
 #include "Mesh.h"
@@ -24,8 +24,8 @@
 using namespace std;
 
 // App parameters
-static const unsigned int DEFAULT_SCREENWIDTH = 1024;
-static const unsigned int DEFAULT_SCREENHEIGHT = 768;
+static const unsigned int DEFAULT_SCREENWIDTH = 500;
+static const unsigned int DEFAULT_SCREENHEIGHT = 500;
 static const float DEFAULT_FOVANGLE = 45.f;
 static const char * DEFAULT_SCENE_FILENAME = "scenes/cornell_box/cornell_box.obj";
 static string appTitle ("MCRT - Monte Carlo Ray Tracer");
@@ -45,8 +45,7 @@ static Vec3f camTarget;
 
 // Scene elements
 
-//static Vec3f lightPos = Vec3f (1.f, 1.f, 1.f);
-static Vec3f lightPos = Vec3f (340.f, 500.f, 225.f);
+static Vec3f lightPos = Vec3f (1.f, 1.f, 1.f);
 static Vec3f lightColor = Vec3f (1.f, 1.f, 1.f);
 static Vec3f sceneCenter = Vec3f (0.f, 0.f, 0.f);
 static float sceneRadius = 1.f;
@@ -65,6 +64,7 @@ static unsigned char * rayImage = NULL;
 //Engine settings
 Mesh mesh;
 Vec3f up(0.f, 1.f, 0.f);
+Vec3f Engine::lightPosRendu = Vec3f (340.f, 300.f, 225.f);
 Engine engine(DEFAULT_FOVANGLE,
               DEFAULT_SCREENWIDTH/(float)DEFAULT_SCREENHEIGHT,
               up,
@@ -177,7 +177,7 @@ void initCamera () {
     nearPlane = sceneRadius/10000.0f;
     farPlane = 10*sceneRadius;
     camTarget = sceneCenter;
-    camEyePolar = Vec3f (2.f * sceneRadius, 3.f * M_PI/2.f, M_PI/2.f);
+    camEyePolar = Vec3f (2.f * sceneRadius, M_PI/3.f, 1.5f * M_PI);
 }
 
 void initLighting () {
