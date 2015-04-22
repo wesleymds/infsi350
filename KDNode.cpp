@@ -32,8 +32,8 @@ KDNode* KDNode :: buildKDTree_test (const Mesh& mesh, const std::vector<int>& li
 			}
 		}
 	// axis-aligned bounding box is the cartesian product of max and min
-	//n.data.max = max;
-	//n.data.min = min;
+	n->data.max = max;
+	n->data.min = min;
 	// find the max extension
 		Vec3f max_ax;
 		for (unsigned int i=0;i<3;i++) {max_ax[i]=max[i]-min[i];}		

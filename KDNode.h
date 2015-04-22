@@ -1,7 +1,7 @@
 #ifndef KDNODE_INCLUDED
 #define KDNODE_INCLUDED
 
-#include "Ray.h"
+#include "Mesh.h"
 
 //KDNode tree
 
@@ -21,9 +21,10 @@ class KDNode
    // Data is the structure that describes plane
    struct Data {
    Vec3f mediane; // mediane
+   Vec3f min;// value of the minimal point in the bounding box
+   Vec3f max;// gitvalue of the maximal point in the bounding box
    unsigned int max_axe; // max axe of the current bounding boxe B
-   //Vec3f min;
-   //Vec3f max;
+
    };
    
    Data data;
