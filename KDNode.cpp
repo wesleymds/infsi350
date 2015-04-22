@@ -11,8 +11,8 @@ bool coordinate_sort (Vec3f v1, Vec3f v2) {
 
 //list of triangles is input
 KDNode* KDNode::buildKDTree (const Mesh& mesh, const vector<int>& list, float percentage) {
-    cout<<"Input percentage "<<percentage<<endl;
-    cout<<"Size of all elements "<<list.size()<<endl;
+    cout<<"Input percentage "<< percentage << endl;
+    cout<<"Size of all elements "<< list.size() << endl;
 
     if (percentage > 0.55f || list.size() <= 5) return nullptr;
 
@@ -35,22 +35,14 @@ KDNode* KDNode::buildKDTree (const Mesh& mesh, const vector<int>& list, float pe
     }
 
     // axis-aligned bounding box is the cartesian product of max and min
-    n->data.max = max;
-    n->data.min = min;
+    n->data.coins[0] = min;
+    n->data.coins[1] = max;
 
     // find the max extension
     Vec3f max_ax;
-    for (unsigned int i=0;i<3;i++) max_ax[i]=max[i]-min[i];
+    for (unsigned int i=0;i<3;i++) max_ax[i] = max[i] - min[i];
 
     // find the axe that corresponds to the maximum extension
-    /*int a(0),b(0);
-    if (max_ax[0]<max_ax[1]) a=1;
-    else a = 0;
-    if (max_ax[1]<max_ax[2]) b = 2;
-    else b = 1;
-    if (max_ax[a]<max_ax[b]) i_max_axis=b;
-    else i_max_axis=a;
-    n->data.max_axe =  i_max_axis;*/
     i_max_axis = max_ax[0] < max_ax[1] ? 1 : 0;
     i_max_axis = max_ax[2] < max_ax[i_max_axis] ? i_max_axis : 2;
 

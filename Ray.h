@@ -5,10 +5,23 @@
 #include "Vec3.h"
 #include "Mesh.h"
 #include "tiny_obj_loader.h"
+#include "KDNode.h"
 
 #define ivtri(i, tri) (mesh.V[tri.v[i]].p)
 
 using namespace std;
+
+struct intersectData
+{
+    intersectData(unsigned int a_noffs,float a_t_far)
+    {
+        far_node_offset = a_noffs;
+        t_far = a_t_far;
+    }
+    unsigned int far_node_offset;
+    float t_far;
+};
+
 
 class Ray {
 private:
@@ -85,6 +98,110 @@ public:
         }
         return isIntersect ? 1 : 0;
     }
+
+    /*int rayBoxIntersection(const Box& box)
+    {
+        float tmin, tmax, tymin, tymax, tzmin, tzmax;
+        Vec3f& coins = box.coins;
+        tmin = (coins[r.sign[0]].x - r.orig.x) * r.invdir.x;
+        tmax = (coins[1-r.sign[0]].x - r.orig.x) * r.invdir.x;
+        tymin = (coins[r.sign[1]].y - r.orig.y) * r.invdir.y;
+        tymax = (coins[1-r.sign[1]].y - r.orig.y) * r.invdir.y;
+        if ((tmin > tymax) || (tymin > tmax))
+            return 0;
+        if (tymin > tmin)
+            tmin = tymin;
+        if (tymax < tmax)
+            tmax = tymax;
+        tzmin = (bounds[r.sign[2]].z - r.orig.z) * r.invdir.z;
+        tzmax = (bounds[1-r.sign[2]].z - r.orig.z) * r.invdir.z;
+        if ((tmin > tzmax) || (tzmin > tmax))
+            return 0;
+        if (tzmin > tmin)
+            tmin = tzmin;
+        if (tzmax < tmax)
+            tmax = tzmax;
+        if (tmin > r.tmin) r.tmin = tmin;
+        if (tmax < r.tmax) r.tmax = tmax;
+        return 1;
+    }
+
+    int rayKDIntersection(KDNode& kdn) {
+        std::stack<intersectData> nstack;
+        float t_near,t_far;
+
+        //TODO
+        // intersect ray with box
+        bool isIntersected = false;
+
+        if(t_near <= 0.0f) t_near = 0.0f;
+
+        if(t_near >= t_far || !isIntersected) return 0;
+
+        /*
+
+
+        const int sign[3] = { (ray.dir[0] >= 0)? 1 : 0,
+                                       (ray.dir[1] >= 0)? 1 : 0,
+                                       (ray.dir[2] >= 0)? 1 : 0 };
+
+        unsigned int nodeOffset=0;
+        KdTreeNode node = *(kd_tree->GetRoot());
+
+        float t_split = 0;
+
+        while(true)
+        {
+            //err_stream << nodeOffset << std::endl;
+            while(!node.Leaf())
+            {
+                // get axis number and t according to split_pos plane
+                int axis = node.GetAxis();
+                t_split = (node.GetSplitPos() - ray.pos[axis])*rdir_inv[axis];
+
+                // get far and near nodes.
+                // assume { left = near, far = right }; if(ray.dir[axis] < 0) swap left and right nodes.
+                // this trick with left_or_right[axis] allows us to remove one 'if'
+                unsigned int nearNodeOffset = node.GetLeftOffset() + (1-left_or_right[axis]);
+                unsigned int farNodeOffset  = node.GetLeftOffset() + left_or_right[axis];
+
+                // now kd-tree traversal algorithm specific
+                if(t_split <= t_near)
+                {
+                    node = kd_tree->GetNodeByOffset(farNodeOffset);
+                }
+                else if(t_split >= t_far)
+                {
+                    node = kd_tree->GetNodeByOffset(nearNodeOffset);
+                }
+                else
+                {
+                    nstack.push(Traversal_Data(farNodeOffset,t_far));
+                    node = kd_tree->GetNodeByOffset(nearNodeOffset);
+                    t_far = t_split;
+                }
+
+            }
+
+            float t_hit = IntersectAllPrimitivesInLeaf(ray,node,pHit);
+            if (t_hit <= t_far)
+                return 0xFFFFFFFF; // early ray termination
+
+            if (nstack.empty())
+                return 0;	// noting else to traverse any more...
+
+            t_near = t_far;
+
+            //( t_near, t_far ) = stack.pop();
+            nodeOffset = nstack.top().far_node_offset;
+            t_far      = nstack.top().t_far;
+            nstack.pop();
+
+            node = kd_tree->GetNodeByOffset(nodeOffset);
+        }
+
+        return 0;
+    }*/
 };
 
 #endif // RAY_H

@@ -6,17 +6,16 @@
 //KDNode tree
 
 // Data is the structure that describes plane
-struct Data {
+struct Box {
     Vec3f mediane; // mediane
-    Vec3f min;// value of the minimal point in the bounding box
-    Vec3f max;// value of the maximal point in the bounding box
+    Vec3f coins[2];// value of the minimal point and the maximal point in the bounding box
     unsigned int max_axe; // max axe of the current bounding boxe B
 };
 
 class KDNode {
 public:
     //variables :
-    Data data;
+    Box data;
     KDNode *leftChild;
     KDNode *rightChild;
 
