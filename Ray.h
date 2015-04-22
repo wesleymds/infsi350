@@ -73,7 +73,6 @@ public:
             p0 = ivtri(0, tri);
             p1 = ivtri(1, tri);
             p2 = ivtri(2, tri);
-            //cout << p0 << "|" << p1 << "|" << p2 << endl;
             if(rayTriangleIntersection(p0, p1, p2, intersect) == 1) {
                 isIntersect = true;
                 d = (eye - intersect.p).length();

@@ -64,7 +64,7 @@ static unsigned char * rayImage = NULL;
 //Engine settings
 Mesh mesh;
 Engine engine(DEFAULT_FOVANGLE,
-              DEFAULT_SCREENWIDTH/DEFAULT_SCREENHEIGHT,
+              DEFAULT_SCREENWIDTH/(float)DEFAULT_SCREENHEIGHT,
               Vec3f(0.f, 1.f, 0.f),
               nearPlane,
               sceneCenter,
@@ -327,7 +327,7 @@ void displayRayImage () {
 
 // MAIN FUNCTION TO CHANGE !
 void rayTrace () {
-    engine.rayTrace(camEyePolar, rayImage);
+    engine.rayTrace(camEyePolar, rayImage, screenWidth, screenHeight);
     /*Vec3f up (0.f, 1.f, 0.f);
     Vec3f eye = polarToCartesian(camEyePolar);
     swap (eye[1], eye[2]);

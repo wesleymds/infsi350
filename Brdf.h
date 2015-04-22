@@ -39,6 +39,7 @@ public:
         Vec3f lightPos = Vec3f (340.f, 450.f, 225.f);
         // Incident light
         wi = lightPos - v.p;
+        //wi = v.p - lightPos;
         wi.normalize();
 
         // Camera
@@ -75,7 +76,6 @@ public:
         //res = 1.f * (fd + fs) * dot(vn, wi);
         //res = (fd + fs) * dot(vn, wi);
         res = fd * dot(vn, wi);
-
 
         return res;
     }
