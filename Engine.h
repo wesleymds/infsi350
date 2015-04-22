@@ -61,11 +61,10 @@ public:
         screenHeight = _h;
         aspectRatio = screenWidth/(float)screenHeight;
 
-        cout << screenWidth << " " << screenHeight << " " << aspectRatio;
+        cout << screenWidth << " " << screenHeight << " " << aspectRatio << " " << fovAngle << endl;
+        cout << sceneCenter << endl;
 
-        height = 2.f * tan(fovAngle / 2.f);
-        //nearPlane == 1;
-        //height(2.f * tan(fovAngle / 2.f)),
+        height = 2.f * nearPlane * tan(fovAngle * (M_PI / 360.f));
         width = height * aspectRatio;
         dx = width / screenWidth;
         dy = height / screenHeight;
@@ -78,9 +77,7 @@ public:
         u.normalize();
         v = cross(w, u);
 
-        c = eye - w;
-        //nearPlane == 1
-        //c = eye - w;
+        c = eye - w * nearPlane;
         l = c - (u * (width / 2.f)) - (v * (height / 2.f));
         Ray ray(mesh, eye, sceneCenter);
         Vec3f rayDir, location;

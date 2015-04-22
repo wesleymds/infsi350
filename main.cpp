@@ -63,9 +63,10 @@ static unsigned char * rayImage = NULL;
 
 //Engine settings
 Mesh mesh;
+Vec3f up(0.f, 1.f, 0.f);
 Engine engine(DEFAULT_FOVANGLE,
               DEFAULT_SCREENWIDTH/(float)DEFAULT_SCREENHEIGHT,
-              Vec3f(0.f, 1.f, 0.f),
+              up,
               nearPlane,
               sceneCenter,
               DEFAULT_SCREENWIDTH,
@@ -325,50 +326,62 @@ void displayRayImage () {
 	return res;
 }*/
 
+inline Vec3f getWorldCam(const Vec3f& camEyePolar) {
+    Vec3f eye = polarToCartesian(camEyePolar);
+    swap (eye[1], eye[2]);
+    eye += sceneCenter;
+    return eye;
+}
+
 // MAIN FUNCTION TO CHANGE !
 void rayTrace () {
     engine.rayTrace(camEyePolar, rayImage, screenWidth, screenHeight);
-    /*Vec3f up (0.f, 1.f, 0.f);
-    Vec3f eye = polarToCartesian(camEyePolar);
-    swap (eye[1], eye[2]);
-    eye += camTarget;
+    /*cout << "RayTrace start" << endl;
 
-    Vec3f w = eye - sceneCenter;
+    float height, width, dx, dy;
+    Vec3f w, u, v, c, l;
+
+    cout << screenWidth << " " << screenHeight << " " << aspectRatio << " " << fovAngle << endl;
+
+    height = 2.f * nearPlane *  tan(fovAngle * (M_PI / 360.f));
+    width = height * aspectRatio;
+    dx = width / screenWidth;
+    dy = height / screenHeight;
+
+    Vec3f eye(getWorldCam(camEyePolar));
+
+    w = eye - sceneCenter;
     w.normalize();
-    Vec3f u = cross(up, w);
+    u = cross(up, w);
     u.normalize();
-    Vec3f v = cross(w, u);
+    v = cross(w, u);
 
-    float distance(nearPlane);
-    Vec3f c = eye - w * distance;
-    float height = 2.f * distance * tan(fovAngle / 2.f);
-    float width = height * aspectRatio;
-    Vec3f l = c - (u * (width / 2.f)) - (v * (height / 2.f));
-    float dx = width / (screenWidth - 1);
-    float dy = height / (screenHeight - 1);
-    Vec3f location;
-    unsigned int ind(0);
-
-    Vec3f add, rayDir;
-    Ray ray(eye);
-    Vec3f intersect;
+    c = eye - w * nearPlane;
+    l = c - (u * (width / 2.f)) - (v * (height / 2.f));
+    Ray ray(mesh, eye, sceneCenter);
+    Vec3f rayDir, location;
+    Vertex intersect;
+    int ind(0);
 
     for (unsigned int i = 0; i < screenHeight; ++i)
     {
         for (unsigned int j = 0; j < screenWidth; ++j)
         {
+            ind = 3*(j+i*screenWidth);
             location = l + u * j * dx + v * i * dy + u * (dx / 2.f) + v * (dy / 2.f);
             rayDir = location - eye;
             ray.setDirection(rayDir);
-            ind = 3*(j+i*screenWidth);
-            if (ray.raySceneIntersection(mesh, eye, intersect) == 1) {
-                rayImage[ind+2] = 255;
-                rayImage[ind] = rayImage[ind+1] = 255 / (eye-intersect).length();
+            if (ray.raySceneIntersection(eye, intersect) == 1) {
+                const Vec3f colorResponse = ray.evaluateResponse(intersect, eye);
+                for(auto i = 0; i < 3; ++i) rayImage[ind + i] = colorResponse[i];
             }
-            else rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 0;
+            else {
+                rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 0;
+            }
         }
     }
-*/
+
+    cout << "RayTrace finish" << endl;*/
 }
 
 void display () {  
@@ -472,183 +485,6 @@ int main (int argc, char ** argv) {
     glutMainLoop ();
     return 0;
 }
-
-/*void drawRays() {
-    setupCamera();
-    Vec3f eye(3.f, 3.f, 3.f);
-    Vec3f w = eye - sceneCenter;
-    w.normalize();
-    Vec3f u = cross(up, w);
-    u.normalize();
-    Vec3f v = cross(w, u);
-
-    float distance(nearPlane);
-    Vec3f c = eye - w * distance;
-    float height = 2.f * distance * tan(fovAngle / 2.f);
-    float width = height * aspectRatio;
-    Vec3f l = c - u * (width / 2.f) - v * (height / 2.f);
-    float dx = width / screenWidth;
-    float dy = height / screenHeight;
-    Vec3f location;
-
-    //float fovH = 2 * fovAngle * aspectRatio; //2.f * atan(tan((fovAngle * M_PI) / 360.f) * aspectRatio);
-    float alpha, beta;
-    Vec3f add, rayDir;
-    Ray ray(eye);
-    Vec3f intersect;
-    Vec3f center(0.f, 0.f, 0.f);
-
-    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Erase the color and z buffers.
-    glLineWidth(5.f);
-    glBegin(GL_LINES);
-    glColor3f (255, 0, 0);
-    glVertex3f(center[0], center[1], center[2]);
-    glVertex3f(w[0], w[1], w[2]);
-    glColor3f (0, 255, 0);
-    glVertex3f(center[0], center[1], center[2]);
-    glVertex3f(u[0], u[1], u[2]);
-    glColor3f (0, 0, 255);
-    glVertex3f(center[0], center[1], center[2]);
-    glVertex3f(v[0], v[1], v[2]);
-
-    for (unsigned int i = 0; i < screenHeight; ++i)
-    {
-        for (unsigned int j = 0; j < screenWidth; ++j)
-        {
-            location = l + u * i * dx + v * j * dy;
-            glColor3f (50, 206, 0);
-            glVertex3f(eye[0], eye[1], eye[2]);
-            location += (location - eye) * 10000.f;
-            glVertex3f(location[0], location[1], location[2]);
-        }
-    }
-
-    glEnd();
-
-    /*Vec3f center(0.f, 0.f, 0.f);
-    center = sceneCenter;
-
-    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Erase the color and z buffers.
-    glColor3f (255, 0, 0);
-    glLineWidth(5.f);
-    glBegin(GL_LINES);
-    glVertex3f(eye[0], eye[1], eye[2]);
-    w = eye - sceneCenter;
-    Vec3f a;
-    a = sceneCenter + w * 0.9f;//((sceneRadius - nearPlane) / sceneRadius );
-    glVertex3f(a[0], a[1], a[2]);
-    glVertex3f(center[0], center[1], center[2]);
-    glVertex3f(eye[0], eye[1], eye[2]);
-    glVertex3f(center[0], center[1], center[2]);
-    glVertex3f(sceneCenter[0], sceneCenter[1], sceneCenter[2]);
-    glColor3f (0, 255, 0);
-    glVertex3f(center[0], center[1], center[2]);
-    glVertex3f(w[0], w[1], w[2]);
-    glColor3f (0, 0, 255);
-    glVertex3f(center[0], center[1], center[2]);
-    glVertex3f(b[0], b[1], b[2]);
-    glColor3f (0, 255, 255);
-    glVertex3f(center[0], center[1], center[2]);
-    glVertex3f(u[0], u[1], u[2]);
-    glColor3f (255, 255, 255);
-    glVertex3f(center[0], center[1], center[2]);
-    glVertex3f(v[0], v[1], v[2]);
-    glColor3f (255, 255, 0);
-    glVertex3f(center[0], center[1], center[2]);
-    glVertex3f(eye[0], eye[1], eye[2]);
-
-    beta = (tan(fovAngle/2.f)) * (((screenHeight/2.f) - 0)/(screenHeight/2.f));
-    alpha = (tan(fovH/2.f)) * ((0 - (screenWidth/2.f))/(screenWidth/2.f));
-    add = u * alpha + v * beta;
-    add.normalize();
-    glColor3f (255, 0, 255);
-    glVertex3f(center[0], center[1], center[2]);
-    glVertex3f(add[0], add[1], add[2]);
-
-    glColor3f (50, 206, 0);
-    glVertex3f(eye[0], eye[1], eye[2]);
-    glVertex3f(add[0], add[1], add[2]);
-
-    beta = (tan(fovAngle/2.f)) * (((screenHeight/2.f) - screenHeight)/(screenHeight/2.f));
-    alpha = (tan(fovH/2.f)) * ((screenWidth - (screenWidth/2.f))/(screenWidth/2.f));
-    add = u * alpha + v * beta;
-    add.normalize();
-    glColor3f (255, 0, 255);
-    glVertex3f(center[0], center[1], center[2]);
-    glVertex3f(add[0], add[1], add[2]);
-
-    glColor3f (50, 206, 0);
-    glVertex3f(eye[0], eye[1], eye[2]);
-    glVertex3f(add[0], add[1], add[2]);
-
-    beta = (tan(fovAngle/2.f)) * (((screenHeight/2.f) - screenHeight)/(screenHeight/2.f));
-    alpha = (tan(fovH/2.f)) * ((0 - (screenWidth/2.f))/(screenWidth/2.f));
-    add = u * alpha + v * beta;
-    add.normalize();
-    glColor3f (255, 0, 255);
-    glVertex3f(center[0], center[1], center[2]);
-    glVertex3f(add[0], add[1], add[2]);
-
-    glColor3f (50, 206, 0);
-    glVertex3f(eye[0], eye[1], eye[2]);
-    glVertex3f(add[0], add[1], add[2]);
-
-    beta = (tan(fovAngle/2.f)) * (((screenHeight/2.f) - 0)/(screenHeight/2.f));
-    alpha = (tan(fovH/2.f)) * ((screenWidth - (screenWidth/2.f))/(screenWidth/2.f));
-    add = u * alpha + v * beta;
-    add.normalize();
-    glColor3f (255, 0, 255);
-    glVertex3f(center[0], center[1], center[2]);
-    glVertex3f(add[0], add[1], add[2]);
-
-    glColor3f (50, 206, 0);
-    glVertex3f(eye[0], eye[1], eye[2]);
-    glVertex3f(add[0], add[1], add[2]);
-
-    beta = (tan(fovAngle/2.f)) * (((screenHeight/2.f) - 100)/(screenHeight/2.f));
-    alpha = (tan(fovH/2.f)) * ((100 - (screenWidth/2.f))/(screenWidth/2.f));
-    add = u * alpha + v * beta;
-    add.normalize();
-    glColor3f (255, 0, 255);
-    glVertex3f(center[0], center[1], center[2]);
-    glVertex3f(add[0], add[1], add[2]);
-
-    glColor3f (50, 206, 0);
-    glVertex3f(eye[0], eye[1], eye[2]);
-    glVertex3f(add[0], add[1], add[2]);
-
-    for (unsigned int i = 0; i < screenHeight; ++i)
-    {
-        for (unsigned int j = 0; j < screenWidth; ++j)
-        {
-            beta = (tan(fovAngle/2.f)) * (((screenHeight/2.f) - i)/(screenHeight/2.f));
-            alpha = (tan(fovH/2.f)) * ((j - (screenWidth/2.f))/(screenWidth/2.f));
-            add = u * alpha + v * beta;
-            add.normalize();
-            glColor3f (50, 206, 0);
-            glVertex3f(eye[0], eye[1], eye[2]);
-            glVertex3f(add[0], add[1], add[2]);
-        }
-    }
-
-    glEnd();
-
-    glBegin(GL_TRIANGLES);
-    for (unsigned int i = 0; i < mesh.T.size (); i++)
-        for (unsigned int j = 0; j < 3; j++) {
-            const Vertex & v = mesh.V[mesh.T[i].v[j]];
-            if (!mesh.materials.empty()) {
-                const tinyobj::material_t& material = mesh.material(i);
-                glColor3f(material.diffuse[0], material.diffuse[1], material.diffuse[2]);
-            }
-            glNormal3f (v.n[0], v.n[1], v.n[2]); // Specifies current normal vertex
-            glVertex3f (v.p[0], v.p[1], v.p[2]); // Emit a vertex (one triangle is emitted each time 3 vertices are emitted)
-        }
-    glEnd ();
-    glFlush(); // Ensures any previous OpenGL call has been executed
-    glutSwapBuffers();
-    glEnable (GL_DEPTH_TEST);
-}*/
 
 // Some Emacs-Hints -- please don't remove:
 //
