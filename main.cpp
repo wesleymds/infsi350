@@ -160,23 +160,23 @@ void computeSceneBoundingSphere () {
 void initKDTree() {
     cout << "KDTreeConstruction start" << endl;
 
-    std::vector<int> list;
+    /*std::vector<int> list;
     list.reserve(mesh.T.size());
     for (unsigned int i=0; i < mesh.T.size(); i++) list.push_back(i);
 
-    node.buildKDTree(mesh, list, 0.f);
+    node.buildKDTree(mesh, list, 0.f);*/
 
-    /*
-    Vec3f max(mesh.V[mesh.T[list[1]].v[1]].p);
-    Vec3f min(mesh.V[mesh.T[list[1]].v[1]].p);
-    Vec3f t_near;
-    Vec3f t_far;
-    Ray r;
+    Vec3f origin(0,10,0);
+    Vec3f direction(0,-1,0);
+    Ray r(origin, direction,mesh);
 
-    for (unsigned int i=0;i<3;i++){
-        r.origin[i]=0.0f; r.direction[i]=i*1.0f;
-    }
-    */
+    Box box;
+    box.coins[0]=Vec3f(-1,-1,-1);
+    box.coins[1]=Vec3f(1,1,1);
+    int a = r.rayBoxIntersection(box);
+
+    cout<<"Test "<<a<<endl;
+
 
     cout << "KDTreeConstruction finish" << endl;
 }

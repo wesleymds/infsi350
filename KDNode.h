@@ -23,8 +23,9 @@ public:
     ~KDNode () {}
     
     //compute KDtree for the list of triangles from Mesh
-    static KDNode* buildKDTree (const Mesh& mesh, const std::vector<int>& list, float percentage);
+    KDNode* buildKDTree (const Mesh& mesh, const std::vector<int>& list, float percentage);
 
+    bool isLeaf();
 };
 
 #endif // KDNODE_INCLUDED

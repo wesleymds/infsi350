@@ -9,14 +9,16 @@ bool coordinate_sort (Vec3f v1, Vec3f v2) {
     return (v1[i_max_axis]<v2[i_max_axis]);
 }
 
+bool KDNode::isLeaf() {
+    return leftChild == nullptr && rightChild == nullptr;
+}
+
 //list of triangles is input
 KDNode* KDNode::buildKDTree (const Mesh& mesh, const vector<int>& list, float percentage) {
     cout<<"Input percentage "<< percentage << endl;
     cout<<"Size of all elements "<< list.size() << endl;
 
     if (percentage > 0.55f || list.size() <= 5) return nullptr;
-
-    KDNode* n = new KDNode();
 
     // find the extension of each axe of the bounding boxe
     Vec3f max(mesh.V[mesh.T[list[1]].v[1]].p);
@@ -35,8 +37,8 @@ KDNode* KDNode::buildKDTree (const Mesh& mesh, const vector<int>& list, float pe
     }
 
     // axis-aligned bounding box is the cartesian product of max and min
-    n->data.coins[0] = min;
-    n->data.coins[1] = max;
+    data.coins[0] = min;
+    data.coins[1] = max;
 
     // find the max extension
     Vec3f max_ax;
@@ -57,11 +59,11 @@ KDNode* KDNode::buildKDTree (const Mesh& mesh, const vector<int>& list, float pe
     sort(sort_mesh.begin(), sort_mesh.end(), coordinate_sort);
 
     // find mediane (according to max axe) in the current list
-    n->data.mediane = sort_mesh[sort_mesh.size()/2];
+    data.mediane = sort_mesh[sort_mesh.size()/2];
 
     //split vectices in two lists: left and rigth according to the median and max axe
 
-    cout<<"Mediane coordinate "<< i_max_axis << " Value of mediane axe " << n->data.mediane[i_max_axis] << endl;
+    cout<<"Mediane coordinate "<< i_max_axis << " Value of mediane axe " << data.mediane[i_max_axis] << endl;
 
     vector<int> listPu;
     vector<int> listPl;
@@ -69,7 +71,7 @@ KDNode* KDNode::buildKDTree (const Mesh& mesh, const vector<int>& list, float pe
 
     for (unsigned int j=0; j<list.size(); j++)
         for (unsigned int k=0; k<3; k++)
-            s[j] += (mesh.V[mesh.T[list[j]].v[k]].p[i_max_axis] < n->data.mediane[i_max_axis]);
+            s[j] += (mesh.V[mesh.T[list[j]].v[k]].p[i_max_axis] < data.mediane[i_max_axis]);
 
     for (unsigned int j=0;j<list.size();j++){
         if (s[j]==3) listPu.push_back(list[j]);
@@ -99,10 +101,10 @@ KDNode* KDNode::buildKDTree (const Mesh& mesh, const vector<int>& list, float pe
     cout<<endl;
 
     // apply recursion if the list is not empty
-    n->leftChild = listPu.size() != list.size() ? buildKDTree(mesh,listPu,percentage) : nullptr;
-    n->rightChild = listPl.size() != list.size() ? buildKDTree(mesh,listPl,percentage) : nullptr;
+    leftChild = listPu.size() != list.size() ? buildKDTree(mesh,listPu,percentage) : nullptr;
+    rightChild = listPl.size() != list.size() ? buildKDTree(mesh,listPl,percentage) : nullptr;
 
-    return n;
+    return this;
 }
 
 
