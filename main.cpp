@@ -13,9 +13,9 @@
 #include <cstring>
 #include <cstdlib>
 #include <cmath>
-//#include <GL/glut.h>
+#include <GL/glut.h>
 // Using for MacOS. Uncomment it.
-#include <GLUT/glut.h>
+//#include <GLUT/glut.h>
 #include "Vec3.h"
 #include "tiny_obj_loader.h"
 #include "Ray.h"

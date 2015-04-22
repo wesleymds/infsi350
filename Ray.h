@@ -28,12 +28,17 @@ private:
     static const float epsilon;
     const Vec3f origin;
     Vec3f direction;
-
     Mesh& mesh;
+
+    Vec3f idirection;
+    float tnear, tfar;
+    int sign[3];
 public:
     Ray(const Vec3f& origin, const Vec3f& direction, Mesh& mesh)
         : origin(origin), direction(direction), mesh(mesh)
-    {}
+    {
+        idirection = -direction;
+    }
 
     Ray(Mesh& mesh, const Vec3f& origin)
         : origin(origin), mesh(mesh)
@@ -99,34 +104,31 @@ public:
         return isIntersect ? 1 : 0;
     }
 
-    /*int rayBoxIntersection(const Box& box)
+    int rayBoxIntersection(const Box& box)
     {
-        float tmin, tmax, tymin, tymax, tzmin, tzmax;
-        Vec3f& coins = box.coins;
-        tmin = (coins[r.sign[0]].x - r.orig.x) * r.invdir.x;
-        tmax = (coins[1-r.sign[0]].x - r.orig.x) * r.invdir.x;
-        tymin = (coins[r.sign[1]].y - r.orig.y) * r.invdir.y;
-        tymax = (coins[1-r.sign[1]].y - r.orig.y) * r.invdir.y;
-        if ((tmin > tymax) || (tymin > tmax))
+        float tnear, tfar, tymin, tymax, tzmin, tzmax;
+        const Vec3f* coins = box.coins;
+        tnear = (coins[sign[0]][0] - origin[0]) * idirection[0];
+        tfar = (coins[1-sign[0]][0] - origin[0]) * idirection[0];
+        tymin = (coins[sign[1]][1] - origin[1]) * idirection[1];
+        tymax = (coins[1-sign[1]][1] - origin[1]) * idirection[1];
+        if ((tnear > tymax) || (tymin > tfar)) return 0;
+        if (tymin > tnear) tnear = tymin;
+        if (tymax < tfar) tfar = tymax;
+        tzmin = (coins[sign[2]][2] - origin[2]) * idirection[2];
+        tzmax = (coins[1-sign[2]][2] - origin[2]) * idirection[2];
+        if ((tnear > tzmax) || (tzmin > tfar))
             return 0;
-        if (tymin > tmin)
-            tmin = tymin;
-        if (tymax < tmax)
-            tmax = tymax;
-        tzmin = (bounds[r.sign[2]].z - r.orig.z) * r.invdir.z;
-        tzmax = (bounds[1-r.sign[2]].z - r.orig.z) * r.invdir.z;
-        if ((tmin > tzmax) || (tzmin > tmax))
-            return 0;
-        if (tzmin > tmin)
-            tmin = tzmin;
-        if (tzmax < tmax)
-            tmax = tzmax;
-        if (tmin > r.tmin) r.tmin = tmin;
-        if (tmax < r.tmax) r.tmax = tmax;
+        if (tzmin > tnear)
+            tnear = tzmin;
+        if (tzmax < tfar)
+            tfar = tzmax;
+        if (tnear > this->tnear) this->tnear = tnear;
+        if (tfar < this->tfar) this->tfar = tfar;
         return 1;
     }
 
-    int rayKDIntersection(KDNode& kdn) {
+    /*int rayKDIntersection(KDNode& kdn) {
         std::stack<intersectData> nstack;
         float t_near,t_far;
 
