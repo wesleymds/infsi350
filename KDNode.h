@@ -1,7 +1,7 @@
 #ifndef KDNODE_INCLUDED
 #define KDNODE_INCLUDED
 
-#include "Mesh.h"
+#include "Ray.h"
 
 //KDNode tree
 
@@ -12,9 +12,9 @@ class KDNode
     KDNode() {};
     ~KDNode () {};
     
-	//compute KDtree for the set of vertices from Mesh
-    static KDNode* buildKDTree_test (const Mesh& mesh, const std::vector<int>& list);
-   
+	//compute KDtree for the list of triangles from Mesh
+    static KDNode* buildKDTree_test (const Mesh& mesh, const std::vector<int>& list, float percentage);
+    
    //variables :   
    KDNode *leftChild;
    KDNode *rightChild;
@@ -22,6 +22,8 @@ class KDNode
    struct Data {
    Vec3f mediane; // mediane
    unsigned int max_axe; // max axe of the current bounding boxe B
+   //Vec3f min;
+   //Vec3f max;
    };
    
    Data data;

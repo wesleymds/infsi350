@@ -12,11 +12,12 @@ using namespace std;
 
 class Ray {
 private:
+
     static const float epsilon;
+public:
 
     Vec3f origin;
     Vec3f direction;
-public:
     Ray() {}
 
     Ray(const Vec3f& origin, const Vec3f& direction)
