@@ -21,13 +21,15 @@
 #include "Ray.h"
 #include "KDNode.h"
 #include "Mesh.h"
+#include "Engine.h"
 
 using namespace std;
 
 // App parameters
 static const unsigned int DEFAULT_SCREENWIDTH = 1024;
 static const unsigned int DEFAULT_SCREENHEIGHT = 768;
-static const char * DEFAULT_SCENE_FILENAME = "scenes/cube/cube.obj";
+static const float DEFAULT_FOVANGLE = 45.f;
+static const char * DEFAULT_SCENE_FILENAME = "scenes/cornell_box/cornell_box.obj";
 static string appTitle ("MCRT - Monte Carlo Ray Tracer");
 static GLint window;
 static unsigned int screenWidth;
@@ -44,14 +46,14 @@ static Vec3f camEyePolar; // Expressing the camera position in polar coordinate,
 static Vec3f camTarget;
 
 // Scene elements
-static Vec3f lightPos = Vec3f (1.f, 1.f, 1.f);
+
+//static Vec3f lightPos = Vec3f (1.f, 1.f, 1.f);
+static Vec3f lightPos = Vec3f (340.f, 500.f, 225.f);
 static Vec3f lightColor = Vec3f (1.f, 1.f, 1.f);
 static Vec3f sceneCenter = Vec3f (0.f, 0.f, 0.f);
 static float sceneRadius = 1.f;
 static vector<tinyobj::shape_t> shapes;
 static vector<tinyobj::material_t> materials;
-
-static Mesh mesh;
 
 // Mouse parameters
 static bool mouseLeftButtonClicked = false;
@@ -62,7 +64,18 @@ static float baseCamTheta;
 // Raytraced image
 static unsigned char * rayImage = NULL;
 
-const float Ray::epsilon(0.001);
+//Engine settings
+Mesh mesh;
+Vec3f up(0.f, 1.f, 0.f);
+Engine engine(DEFAULT_FOVANGLE,
+              DEFAULT_SCREENWIDTH/(float)DEFAULT_SCREENHEIGHT,
+              up,
+              nearPlane,
+              sceneCenter,
+              DEFAULT_SCREENWIDTH,
+              DEFAULT_SCREENHEIGHT,
+              mesh
+              );
 
 void printUsage () {
     std::cerr << std::endl // send a line break to the standard error output
@@ -156,17 +169,17 @@ bool loadScene(const string & filename, const string & basepath = "") {
     computeSceneNormals ();
     computeSceneBoundingSphere ();
 
-    mesh.set_mesh(shapes, materials);
-    mesh.show_properties();
+    engine.mesh.set_mesh(shapes, materials);
+    engine.mesh.show_properties();
     return true;
 }
 
 void initCamera () {
-    fovAngle = 135.f;
+    fovAngle = DEFAULT_FOVANGLE;
     nearPlane = sceneRadius/10000.0f;
     farPlane = 10*sceneRadius;
     camTarget = sceneCenter;
-    camEyePolar = Vec3f (2.f * sceneRadius, M_PI/2.f, M_PI/2.f);
+    camEyePolar = Vec3f (2.f * sceneRadius, 3.f * M_PI/2.f, M_PI/2.f);
 }
 
 void initLighting () {
@@ -248,24 +261,25 @@ void displayRayImage () {
     glEnable (GL_DEPTH_TEST);
 }
 
+
 // Test if a a point of the scene (v) is occulted by any triangle
 // in a epsilon interval
-bool isDirectedOcculted (Vertex v, float epsilon) {
+/*bool isDirectedOcculted (Vertex v, float epsilon) {
 	// Light ray from v
 	Ray lightRay(v.p, lightPos);
 
     Vec3f intersecT;
 	// Check it there is an intersection between lightRay and a point of the scene
-	if (lightRay.raySceneIntersection(mesh, intersecT))
+    if (lightRay.raySceneIntersection(mesh, eye, intersecT))
 		// If the intersection is in a distance < epsilon
 		if (dist(intersecT, v.p) < epsilon)
 			return true;
 	
 	return false;
-}
+}*/
 
 // Compute the BRDF GGX model of light response in a vertice
-float reponseBRDF_GGX (Vertex v) {
+/*float reponseBRDF_GGX (Vertex v) {
 	// Parameters in equations
 	float res, fd, fs, d, roughness, alpha, aux, f, g, f0, gi, go;
 	Vec3f wi, vn, wo, wh;
@@ -314,103 +328,68 @@ float reponseBRDF_GGX (Vertex v) {
 	res = 1 * (fd + fs) * dot(vn, wi);
 	
 	return res;
+}*/
+
+inline Vec3f getWorldCam(const Vec3f& camEyePolar) {
+    Vec3f eye = polarToCartesian(camEyePolar);
+    swap (eye[1], eye[2]);
+    eye += sceneCenter;
+    return eye;
 }
 
 // MAIN FUNCTION TO CHANGE !
-void rayTrace () {    
-    Vec3f eye = polarToCartesian(camEyePolar);
-    cout << eye << endl;
-    Vec3f w = sceneCenter - eye;
-    w.normalize();
-    Vec3f b(0.f, 1.f, 0.f);
-    Vec3f u = cross(b, w);
-    u.normalize();
-    Vec3f v = cross(w, u);
-    v.normalize();
-    float fovH = 2.f * atan(tan((fovAngle * M_PI) / 360.f) * aspectRatio);
-    float alpha, beta;
-    Vec3f add, rayDir;
-    Ray ray(eye);
-    Vec3f intersect;
-    unsigned int ind;
-    cout << "u=" << u << endl;
-    cout << "w=" << w << endl;
-    cout << "v=" << v << endl;
+void rayTrace () {
+    engine.rayTrace(camEyePolar, rayImage, screenWidth, screenHeight);
+    /*cout << "RayTrace start" << endl;
 
-    ///TODO ray trace http://www1.cs.columbia.edu/~cs4162/slides/lecture16.pdf
-    for (unsigned int  i = 0; i < screenHeight; i++) {
-        beta = tan(fovAngle/2.f) * (((screenHeight/2.f) - i)/(screenHeight/2.f));
-        for (unsigned int j = 0; j < screenWidth; j++) {
-            alpha = tan(fovH/2.f) * ((j - (screenWidth/2.f))/(screenWidth/2.f));
-            add = u * alpha + v * beta - w;
-            //add.normalize();
-            rayDir = add;
-            rayDir.normalize();
-            //cout << "raDIr="<< rayDir << endl;
-            ray.setDirection(rayDir);
+    float height, width, dx, dy;
+    Vec3f w, u, v, c, l;
+
+    cout << screenWidth << " " << screenHeight << " " << aspectRatio << " " << fovAngle << endl;
+
+    height = 2.f * nearPlane *  tan(fovAngle * (M_PI / 360.f));
+    width = height * aspectRatio;
+    dx = width / screenWidth;
+    dy = height / screenHeight;
+
+    Vec3f eye(getWorldCam(camEyePolar));
+
+    w = eye - sceneCenter;
+
+    w.normalize();
+    u = cross(up, w);
+    u.normalize();
+    v = cross(w, u);
+
+    c = eye - w * nearPlane;
+    l = c - (u * (width / 2.f)) - (v * (height / 2.f));
+    Ray ray(mesh, eye, sceneCenter);
+    Vec3f rayDir, location;
+    Vertex intersect;
+    int ind(0);
+
+    for (unsigned int i = 0; i < screenHeight; ++i)
+    {
+        for (unsigned int j = 0; j < screenWidth; ++j)
+        {
             ind = 3*(j+i*screenWidth);
-            if (ray.raySceneIntersection(mesh, intersect) == 1) {
-                rayImage[ind] = 255;//abs(alpha)*255;
-                rayImage[ind+1] = intersect[1];//abs(beta)*255;
-                rayImage[ind+2] = intersect[2];//255;
-                //rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 255;
-            }
-            else rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 30;
-        }
-    }
-}
-
-void drawRays() {
-    Vec3f eye = polarToCartesian(camEyePolar);
-    Vec3f w = sceneCenter - eye;
-    w.normalize();
-    Vec3f b(0.f, 1.f, 0.f);
-    Vec3f u = cross(b, w);
-    u.normalize();
-    Vec3f v = cross(w, u);
-    float fovH = 2.f * atan(tan((fovAngle * M_PI) / 360.f) * aspectRatio);
-    float alpha, beta;
-    Vec3f add, rayDir;
-    Ray ray(eye);
-    Vec3f intersect;
-
-    ///TODO ray trace http://www1.cs.columbia.edu/~cs4162/slides/lecture16.pdf
-    setupCamera ();
-    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Erase the color and z buffers.
-    glColor3f (1.f, 1.f, 1.f);
-    glBegin(GL_LINES);
-    for (unsigned int  j = 0; j < screenHeight; j++) {
-        alpha = tan(fovH/2.f) * ((j - (screenWidth/2.f))/(screenWidth/2.f));
-        for (unsigned int i = 0; i < screenWidth; i++) {
-            beta = tan(fovAngle/2.f) * (((screenHeight/2.f) - i)/(screenHeight/2.f));
-            add = alpha * u + beta * v - w;
-            add.normalize();
-            rayDir = Vec3f(1.f, 1.f, 1.f) - eye;
+            location = l + u * j * dx + v * i * dy + u * (dx / 2.f) + v * (dy / 2.f);
+            rayDir = location - eye;
             ray.setDirection(rayDir);
-            //if (ray.raySceneIntersection(mesh, intersect) == 1) cout << 1 << endl;
+            if (ray.raySceneIntersection(eye, intersect) == 1) {
+                const Vec3f colorResponse = ray.evaluateResponse(intersect, eye);
+                for(auto i = 0; i < 3; ++i) rayImage[ind + i] = colorResponse[i];
+            }
+            else {
+                rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 0;
+            }
         }
     }
-    glVertex3f(eye[0], eye[1], eye[2]);
-    glVertex3f(rayDir[0], rayDir[1], rayDir[2]);
-    glEnd();
-    glBegin(GL_TRIANGLES);
-    for (unsigned int i = 0; i < mesh.T.size (); i++)
-        for (unsigned int j = 0; j < 3; j++) {
-            const Vertex & v = mesh.V[mesh.T[i].v[j]];
-            if (!mesh.materials.empty()) {
-                const tinyobj::material_t& material = mesh.material(i);
-                glColor3f(material.diffuse[0], material.diffuse[1], material.diffuse[2]);
-            }
-            glNormal3f (v.n[0], v.n[1], v.n[2]); // Specifies current normal vertex
-            glVertex3f (v.p[0], v.p[1], v.p[2]); // Emit a vertex (one triangle is emitted each time 3 vertices are emitted)
-        }
-    glEnd ();
-    glFlush(); // Ensures any previous OpenGL call has been executed
-    glutSwapBuffers();
-    glEnable (GL_DEPTH_TEST);
+
+    cout << "RayTrace finish" << endl;*/
 }
 
-void display () {  
+void display () {
     if (rayDisplayMode)
         displayRayImage ();
         //drawRays();
@@ -484,7 +463,7 @@ void idle () {
         FPS = counter;
         counter = 0;
         static char winTitle [128];
-        unsigned int numOfTriangles = mesh.T.size ();
+        unsigned int numOfTriangles = engine.mesh.T.size ();
         sprintf (winTitle, "Number Of Triangles: %d - FPS: %d", numOfTriangles, FPS);
         glutSetWindowTitle (winTitle);
         lastTime = currentTime;

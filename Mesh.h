@@ -38,6 +38,7 @@ public:
     }
     Vec3f p;
     Vec3f n;
+    int material_id;
 };
 
 class Triangle {
@@ -95,7 +96,6 @@ private:
                 T.push_back(tri);
             }
         }
-
         /*centerAndScaleToUnit();
 
         recomputeNormals();*/
@@ -161,9 +161,11 @@ public:
     }
 
     tinyobj::material_t& material(unsigned int tri) {
-        if (!materials.empty ()) {
-            return materials[T[tri].material_id];
-        }
+        return materials[T[tri].material_id];
+    }
+
+    tinyobj::material_t& material(const Vertex& v) {
+        return materials[v.material_id];
     }
 };
 

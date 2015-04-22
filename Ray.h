@@ -5,8 +5,9 @@
 #include "Vec3.h"
 #include "Mesh.h"
 #include "tiny_obj_loader.h"
+#include "Brdf.h"
 
-#define ivtri(i, tri) &(scene.V[tri.v[i]].p)
+#define ivtri(i, tri) (mesh.V[tri.v[i]].p)
 
 using namespace std;
 
@@ -14,25 +15,31 @@ class Ray {
 private:
 
     static const float epsilon;
+
 public:
 
     Vec3f origin;
     Vec3f direction;
     Ray() {}
+    const Vec3f origin;
+    Vec3f direction;
+    const Vec3f& sceneCenter;
 
-    Ray(const Vec3f& origin, const Vec3f& direction)
-        : origin(origin), direction(direction)
+    Mesh& mesh;
+public:
+    Ray(const Vec3f& origin, const Vec3f& direction, Mesh& mesh, const Vec3f& sceneCenter)
+        : origin(origin), direction(direction), mesh(mesh), sceneCenter(sceneCenter)
     {}
 
-    Ray(const Vec3f& origin)
-        : origin(origin)
+    Ray(Mesh& mesh, const Vec3f& origin, const Vec3f& sceneCenter)
+        : origin(origin), mesh(mesh), sceneCenter(sceneCenter)
     {}
 
     void setDirection(const Vec3f& _direction) {
         direction = _direction;
     }
 
-    int rayTriangleIntersection(const Vec3f& p0, const Vec3f& p1, const Vec3f& p2, Vec3f& out) {
+    int rayTriangleIntersection(const Vec3f& p0, const Vec3f& p1, const Vec3f& p2, Vertex& out) {
         Vec3f e0, e1, n, q, s, r;
         float a, b0, b1, b2, t;
 
@@ -55,29 +62,56 @@ public:
 
         t = dot(e1, r);
         if (t >= 0) {
-            out = origin + t * direction;
+            out.p = origin + t * direction;
+            out.n = n;
             return 1;
         }
         return 0;
     }
 
-    int raySceneIntersection(const Mesh& scene, Vec3f& out) {
-        const Vec3f* p0;
-        const Vec3f* p1;
-        const Vec3f* p2;
-        for(auto tri: scene.T) {
+    int raySceneIntersection(const Vec3f& eye, Vertex& out) {
+        Vec3f p0;
+        Vec3f p1;
+        Vec3f p2;
+        int e(1000000), d;
+        Vertex intersect;
+        bool isIntersect(false);
+        for(auto tri: mesh.T) {
             p0 = ivtri(0, tri);
             p1 = ivtri(1, tri);
             p2 = ivtri(2, tri);
-            if(rayTriangleIntersection(*p0, *p1, *p2, out) == 1) return 1;
+            if(rayTriangleIntersection(p0, p1, p2, intersect) == 1) {
+                isIntersect = true;
+                d = (eye - intersect.p).length();
+                if(d < e) {
+                    e = d;
+                    out = intersect;
+                    out.material_id = tri.material_id;
+                }
+            }
         }
-        return 0;
+        return isIntersect ? 1 : 0;
     }
 
-    ///TODO
-    void evaluateResponse() {
 
+
+    Vec3f evaluateResponse(const Vertex& intersect, const Vec3f& camEye) {
+		Vec3f lightPos = Vec3f (340.f, 450.f, 225.f);
+		// Light ray from v
+		Ray lightRay(intersect.p, lightPos, mesh, sceneCenter);
+//
+//		Vertex v;
+//		float epsilon = 0.5;
+//		// Check it there is an intersection between lightRay and a point of the scene
+//		if (lightRay.raySceneIntersection(camEye, v))
+//			// If the intersection is in a distance < epsilon
+//			if (dist(v.p, intersect.p) > epsilon)
+//				return 0;
+		
+		static Brdf brdf(mesh, sceneCenter);
+		return brdf.reponseBRDF_GGX(intersect, camEye);
     }
+
 };
 
 #endif // RAY_H
