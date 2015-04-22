@@ -26,8 +26,8 @@
 using namespace std;
 
 // App parameters
-static const unsigned int DEFAULT_SCREENWIDTH = 1024;
-static const unsigned int DEFAULT_SCREENHEIGHT = 768;
+static const unsigned int DEFAULT_SCREENWIDTH = 256;
+static const unsigned int DEFAULT_SCREENHEIGHT = 256;
 static const float DEFAULT_FOVANGLE = 45.f;
 static const char * DEFAULT_SCENE_FILENAME = "scenes/cornell_box/cornell_box.obj";
 static string appTitle ("MCRT - Monte Carlo Ray Tracer");
@@ -496,7 +496,7 @@ int main (int argc, char ** argv) {
 		list.push_back(i);
 	}   	
 	
-	node = KDNode ::buildKDTree_test(mesh,list,0.0);
+    //node = KDNode ::buildKDTree_test(mesh,list,0.0);
 	
 	/*
 	Vec3f max(mesh.V[mesh.T[list[1]].v[1]].p);
