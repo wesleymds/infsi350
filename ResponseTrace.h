@@ -79,15 +79,26 @@ public:
 	
 	// Test if a a point of the scene (v) is occulted by any triangle
 	// in a epsilon interval
-	bool isDirectedOcculted (Ray& lightRay) {
+	bool isDirectedOcculted (const Vertex& v) {
+		
+		// Light ray from v
+		Vec3f direction = lightPos - v.p;
+//		if (v.shapeName == "green_wall" && v.p[0] == 0 && v.p[1] > 400 && v.p[2] > 300) // test
+//			cout << "test" << endl;
+		direction.normalize();
+		Ray lightRay(v.p, direction, mesh);
+
 		
 		Vertex v1, v2, v3, intersect;
+		bool isIntersected = false;
 		// Check intersection with all triangles of the mesh with lightRay
 		for (unsigned int i = 0; i < mesh.T.size (); i++) {
 			v1 = mesh.V[mesh.T[i].v[0]];
 			v2 = mesh.V[mesh.T[i].v[1]];
 			v3 = mesh.V[mesh.T[i].v[2]];
-			if (lightRay.rayTriangleIntersection(v1.p, v2.p, v3.p, intersect))
+//			Triangle t = mesh.T[i]; // test
+			isIntersected = lightRay.rayTriangleIntersection(v1.p, v2.p, v3.p, intersect);
+			if (isIntersected && dist(intersect.p, v.p) < dist(lightPos, v.p))
 				return true;
 		}
 		
@@ -96,12 +107,8 @@ public:
 
 	
 	Vec3f evaluateResponse(const Vertex& v, const Vec3f& camEye) {
-		// Light ray from v
-		Vec3f direction = lightPos - v.p;
-		direction.normalize();
-		Ray lightRay(v.p, direction, mesh);
 		
-		if (isDirectedOcculted(lightRay))
+		if (isDirectedOcculted(v))
 			return Vec3f (0.f, 0.f, 0.f);
 		else
 			return responseBRDF_GGX(v, camEye);

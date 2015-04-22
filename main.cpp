@@ -13,9 +13,9 @@
 #include <cstring>
 #include <cstdlib>
 #include <cmath>
-#include <GL/glut.h>
+//#include <GL/glut.h>
 // Using for MacOS. Uncomment it.
-//#include <GLUT/glut.h>
+#include <GLUT/glut.h>
 #include "Vec3.h"
 #include "tiny_obj_loader.h"
 #include "Ray.h"
@@ -26,8 +26,8 @@
 using namespace std;
 
 // App parameters
-static const unsigned int DEFAULT_SCREENWIDTH = 256;
-static const unsigned int DEFAULT_SCREENHEIGHT = 256;
+static const unsigned int DEFAULT_SCREENWIDTH = 500;
+static const unsigned int DEFAULT_SCREENHEIGHT = 500;
 static const float DEFAULT_FOVANGLE = 45.f;
 static const char * DEFAULT_SCENE_FILENAME = "scenes/cube/cube.obj";
 static string appTitle ("MCRT - Monte Carlo Ray Tracer");
@@ -67,7 +67,7 @@ static unsigned char * rayImage = NULL;
 KDNode node;
 Mesh mesh;
 Vec3f up(0.f, 1.f, 0.f);
-Vec3f Engine::lightPosRendu = Vec3f (340.f, 300.f, 225.f);
+Vec3f Engine::lightPosRendu = Vec3f (340.f, 500.f, 225.f);
 Engine engine(DEFAULT_FOVANGLE,
               DEFAULT_SCREENWIDTH/(float)DEFAULT_SCREENHEIGHT,
               up,
