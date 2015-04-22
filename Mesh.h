@@ -39,6 +39,7 @@ public:
     Vec3f p;
     Vec3f n;
     int material_id;
+	std::string shapeName;
 };
 
 class Triangle {
@@ -51,6 +52,8 @@ public:
         v[1] = t.v[1];
         v[2] = t.v[2];
         material_id = t.material_id;
+		shapeName = t.shapeName;
+		
     }
     inline Triangle (unsigned int v0, unsigned int v1, unsigned int v2) {
         v[0] = v0;
@@ -63,6 +66,8 @@ public:
         v[1] = t.v[1];
         v[2] = t.v[2];
         material_id = t.material_id;
+		shapeName = t.shapeName;
+		
         return (*this);
     }
     inline void set_triangle (unsigned int v0, unsigned int v1, unsigned int v2) {
@@ -73,6 +78,7 @@ public:
 
     unsigned int v[3];
     int material_id;
+	std::string shapeName; // test
 };
 
 class Mesh {
@@ -90,6 +96,7 @@ private:
                     i = 3*shapes[s].mesh.indices[3*f+v];
                     V.push_back(Vertex(Vec3f(ptv(i), ptv(i + 1), ptv(i + 2)), Vec3f(ntv(i), ntv(i + 1), ntv(i + 2))));
                     tri.v[v] = vertex_ind++;
+					tri.shapeName = shapes[s].name; // test
                 }
                 if (!materials.empty ())
                     tri.material_id = shapes[s].mesh.material_ids[f];

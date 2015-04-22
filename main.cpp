@@ -47,8 +47,7 @@ static Vec3f camTarget;
 
 // Scene elements
 
-//static Vec3f lightPos = Vec3f (1.f, 1.f, 1.f);
-static Vec3f lightPos = Vec3f (340.f, 500.f, 225.f);
+static Vec3f lightPos = Vec3f (1.f, 1.f, 1.f);
 static Vec3f lightColor = Vec3f (1.f, 1.f, 1.f);
 static Vec3f sceneCenter = Vec3f (0.f, 0.f, 0.f);
 static float sceneRadius = 1.f;
@@ -68,6 +67,7 @@ static unsigned char * rayImage = NULL;
 KDNode node;
 Mesh mesh;
 Vec3f up(0.f, 1.f, 0.f);
+Vec3f Engine::lightPosRendu = Vec3f (340.f, 300.f, 225.f);
 Engine engine(DEFAULT_FOVANGLE,
               DEFAULT_SCREENWIDTH/(float)DEFAULT_SCREENHEIGHT,
               up,
@@ -205,7 +205,7 @@ void initCamera () {
     nearPlane = sceneRadius/10000.0f;
     farPlane = 10*sceneRadius;
     camTarget = sceneCenter;
-    camEyePolar = Vec3f (2.f * sceneRadius, 3.f * M_PI/2.f, M_PI/2.f);
+    camEyePolar = Vec3f (2.f * sceneRadius, M_PI/3.f, 1.5f * M_PI);
 }
 
 void initLighting () {
