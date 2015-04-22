@@ -44,6 +44,7 @@ static Vec3f camEyePolar; // Expressing the camera position in polar coordinate,
 static Vec3f camTarget;
 
 // Scene elements
+
 //static Vec3f lightPos = Vec3f (1.f, 1.f, 1.f);
 static Vec3f lightPos = Vec3f (340.f, 500.f, 225.f);
 static Vec3f lightColor = Vec3f (1.f, 1.f, 1.f);
@@ -258,6 +259,7 @@ void displayRayImage () {
     glEnable (GL_DEPTH_TEST);
 }
 
+
 // Test if a a point of the scene (v) is occulted by any triangle
 // in a epsilon interval
 /*bool isDirectedOcculted (Vertex v, float epsilon) {
@@ -351,6 +353,7 @@ void rayTrace () {
     Vec3f eye(getWorldCam(camEyePolar));
 
     w = eye - sceneCenter;
+
     w.normalize();
     u = cross(up, w);
     u.normalize();
@@ -384,7 +387,7 @@ void rayTrace () {
     cout << "RayTrace finish" << endl;*/
 }
 
-void display () {  
+void display () {
     if (rayDisplayMode)
         displayRayImage ();
         //drawRays();

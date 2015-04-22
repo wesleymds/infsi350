@@ -64,10 +64,11 @@ public:
         cout << screenWidth << " " << screenHeight << " " << aspectRatio << " " << fovAngle << endl;
         cout << sceneCenter << endl;
 
-        height = 2.f * nearPlane * tan(fovAngle * (M_PI / 360.f));
+        height = 2.f * tan(fovAngle * (M_PI / 360.f));
         width = height * aspectRatio;
         dx = width / screenWidth;
         dy = height / screenHeight;
+
 
         Vec3f eye(getWorldCam(camEyePolar));
 
@@ -77,7 +78,8 @@ public:
         u.normalize();
         v = cross(w, u);
 
-        c = eye - w * nearPlane;
+		c = eye - w;
+
         l = c - (u * (width / 2.f)) - (v * (height / 2.f));
         Ray ray(mesh, eye, sceneCenter);
         Vec3f rayDir, location;

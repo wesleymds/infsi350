@@ -62,7 +62,7 @@ public:
         return 0;
     }
 
-    int raySceneIntersection(Vec3f& eye, Vertex& out) {
+    int raySceneIntersection(const Vec3f& eye, Vertex& out) {
         Vec3f p0;
         Vec3f p1;
         Vec3f p2;
@@ -86,9 +86,23 @@ public:
         return isIntersect ? 1 : 0;
     }
 
+
+
     Vec3f evaluateResponse(const Vertex& intersect, const Vec3f& camEye) {
-        static Brdf brdf(mesh, sceneCenter);
-        return brdf.reponseBRDF_GGX(intersect, camEye);
+//		Vec3f lightPos = Vec3f (340.f, 450.f, 225.f);
+//		// Light ray from v
+//		Ray lightRay(intersect.p, lightPos, mesh, sceneCenter);
+//
+//		Vertex v;
+//		float epsilon = 0.5;
+//		// Check it there is an intersection between lightRay and a point of the scene
+//		if (lightRay.raySceneIntersection(camEye, v))
+//			// If the intersection is in a distance < epsilon
+//			if (dist(v.p, intersect.p) > epsilon)
+//				return 0;
+		
+		static Brdf brdf(mesh, sceneCenter);
+		return brdf.reponseBRDF_GGX(intersect, camEye);
     }
 
 };

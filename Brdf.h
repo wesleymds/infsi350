@@ -3,6 +3,7 @@
 
 #include "Vec3.h"
 #include "Mesh.h"
+#include <algorithm>
 #include <vector>
 
 class Brdf {
@@ -41,6 +42,8 @@ public:
         wi = lightPos - v.p;
         //wi = v.p - lightPos;
         wi.normalize();
+		
+		float vnDotwi = std::max(dot(vn, wi), 0.f);
 
         // Camera
         wo = eye;
@@ -54,19 +57,19 @@ public:
         d = pow(alpha, 2.0) / (M_PI * pow(aux, 2.0));
 
         // F(wi, wh): Fernel term
-        for(auto i = 0; i < 3; ++i) f0[i] = mesh.material(v).specular[0];
-        aux = dot(wi, wh);
-        if (aux < 0) aux = 0;
+        for(auto i = 0; i < 3; ++i) f0[i] = mesh.material(v).specular[i];
+		aux = std::max(dot(wi, wh), 0.f);
+		
         for(auto i = 0; i < 3; ++i) f[i] = f0[i] + (1 - f0[i]) * pow((1 - aux), 5.0);
 
         // G(wi, w0): Geometric term
-        aux = pow(alpha, 2.0) + (1 - pow(alpha, 2.0)) * pow(dot(vn, wi), 2.0);
+        aux = pow(alpha, 2.0) + (1 - pow(alpha, 2.0)) * pow(vnDotwi, 2.0);
         gi = (2 * dot(vn, wi)) / (dot(vn, wi) + sqrt(aux));
         aux = pow(alpha, 2.0) + (1 - pow(alpha, 2.0)) * pow(dot(vn, wo), 2.0);
         go = (2 * dot(vn, wo)) / (dot(vn, wo) + sqrt(aux));
         g = gi * go;
 
-        for(auto i = 0; i < 3; ++i) fs[i] = (d * f[i] * g) / (4 * dot(vn, wi) * dot(vn, wo)); // Specular term
+        for(auto i = 0; i < 3; ++i) fs[i] = (d * f[i] * g) / (4 * vnDotwi * dot(vn, wo)); // Specular term
 
         for(auto i = 0; i < 3; ++i)
             fd[i] = 255 * mesh.material(v).diffuse[i] / M_PI; // Diffuse term
@@ -74,8 +77,9 @@ public:
         // Final response
         // TODO maybe puissance?
         //res = 1.f * (fd + fs) * dot(vn, wi);
-        //res = (fd + fs) * dot(vn, wi);
-        res = fd * dot(vn, wi);
+        res = (fd + fs) * vnDotwi;
+//        res = fd * vnDotwi;
+//		res = Vec3f(255.f, 255.f, 255.f) * std::max(dot(vn, wi), 0.f);
 
         return res;
     }
