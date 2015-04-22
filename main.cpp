@@ -13,19 +13,21 @@
 #include <cstring>
 #include <cstdlib>
 #include <cmath>
-//#include <GL/glut.h>
+#include <GL/glut.h>
 // Using for MacOS. Uncomment it.
-#include <GLUT/glut.h>
+//#include <GLUT/glut.h>
 #include "Vec3.h"
 #include "tiny_obj_loader.h"
+#include "Ray.h"
+#include "KDNode.h"
 #include "Mesh.h"
 #include "Engine.h"
 
 using namespace std;
 
 // App parameters
-static const unsigned int DEFAULT_SCREENWIDTH = 500;
-static const unsigned int DEFAULT_SCREENHEIGHT = 500;
+static const unsigned int DEFAULT_SCREENWIDTH = 256;
+static const unsigned int DEFAULT_SCREENHEIGHT = 256;
 static const float DEFAULT_FOVANGLE = 45.f;
 static const char * DEFAULT_SCENE_FILENAME = "scenes/cornell_box/cornell_box.obj";
 static string appTitle ("MCRT - Monte Carlo Ray Tracer");
@@ -485,6 +487,30 @@ int main (int argc, char ** argv) {
     glutMotionFunc (motion); // Callback function executed when the mouse move
     glutIdleFunc (idle); // Callback function executed continuously when no other event happens (good for background procesing or animation for instance).
     printUsage (); // By default, display the usage help of the program
+    
+    KDNode* node;
+    
+    std::vector<int> list;    
+    
+	for (unsigned int i=0; i < mesh.T.size(); i++) {
+		list.push_back(i);
+	}   	
+	
+    //node = KDNode ::buildKDTree_test(mesh,list,0.0);
+	
+	/*
+	Vec3f max(mesh.V[mesh.T[list[1]].v[1]].p);
+	Vec3f min(mesh.V[mesh.T[list[1]].v[1]].p);	
+	boundBox(max, min, mesh, list);
+	Vec3f t_near;
+	Vec3f t_far;
+	Ray r;
+	
+	for (unsigned int i=0;i<3;i++){
+		r.origin[i]=0.0f; r.direction[i]=i*1.0f;
+	}	
+    intersectBoxeRay(t_near, t_far, r);
+    */
     glutMainLoop ();
     return 0;
 }
