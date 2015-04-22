@@ -61,8 +61,8 @@ public:
         screenHeight = _h;
         aspectRatio = screenWidth/(float)screenHeight;
 
-        cout << screenWidth << " " << screenHeight << " " << aspectRatio << " " << fovAngle << endl;
-        cout << sceneCenter << endl;
+        //cout << screenWidth << " " << screenHeight << " " << aspectRatio << " " << fovAngle << endl;
+        //cout << sceneCenter << endl;
 
         height = 2.f * tan(fovAngle * (M_PI / 360.f));
         width = height * aspectRatio;
@@ -112,3 +112,50 @@ public:
 
 #endif // ENGINE_h
 
+/*cout << "RayTrace start" << endl;
+
+float height, width, dx, dy;
+Vec3f w, u, v, c, l;
+
+cout << screenWidth << " " << screenHeight << " " << aspectRatio << " " << fovAngle << endl;
+
+height = 2.f * nearPlane *  tan(fovAngle * (M_PI / 360.f));
+width = height * aspectRatio;
+dx = width / screenWidth;
+dy = height / screenHeight;
+
+Vec3f eye(getWorldCam(camEyePolar));
+
+w = eye - sceneCenter;
+
+w.normalize();
+u = cross(up, w);
+u.normalize();
+v = cross(w, u);
+
+c = eye - w * nearPlane;
+l = c - (u * (width / 2.f)) - (v * (height / 2.f));
+Ray ray(mesh, eye, sceneCenter);
+Vec3f rayDir, location;
+Vertex intersect;
+int ind(0);
+
+for (unsigned int i = 0; i < screenHeight; ++i)
+{
+    for (unsigned int j = 0; j < screenWidth; ++j)
+    {
+        ind = 3*(j+i*screenWidth);
+        location = l + u * j * dx + v * i * dy + u * (dx / 2.f) + v * (dy / 2.f);
+        rayDir = location - eye;
+        ray.setDirection(rayDir);
+        if (ray.raySceneIntersection(eye, intersect) == 1) {
+            const Vec3f colorResponse = ray.evaluateResponse(intersect, eye);
+            for(auto i = 0; i < 3; ++i) rayImage[ind + i] = colorResponse[i];
+        }
+        else {
+            rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 0;
+        }
+    }
+}
+
+cout << "RayTrace finish" << endl;*/

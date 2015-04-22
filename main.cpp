@@ -29,7 +29,7 @@ using namespace std;
 static const unsigned int DEFAULT_SCREENWIDTH = 256;
 static const unsigned int DEFAULT_SCREENHEIGHT = 256;
 static const float DEFAULT_FOVANGLE = 45.f;
-static const char * DEFAULT_SCENE_FILENAME = "scenes/cornell_box/cornell_box.obj";
+static const char * DEFAULT_SCENE_FILENAME = "scenes/cube/cube.obj";
 static string appTitle ("MCRT - Monte Carlo Ray Tracer");
 static GLint window;
 static unsigned int screenWidth;
@@ -65,6 +65,7 @@ static float baseCamTheta;
 static unsigned char * rayImage = NULL;
 
 //Engine settings
+KDNode node;
 Mesh mesh;
 Vec3f up(0.f, 1.f, 0.f);
 Engine engine(DEFAULT_FOVANGLE,
@@ -156,6 +157,30 @@ void computeSceneBoundingSphere () {
         }
 }
 
+void initKDTree() {
+    cout << "KDTreeConstruction start" << endl;
+
+    std::vector<int> list;
+    list.reserve(mesh.T.size());
+    for (unsigned int i=0; i < mesh.T.size(); i++) list.push_back(i);
+
+    node.buildKDTree(mesh, list, 0.f);
+
+    /*
+    Vec3f max(mesh.V[mesh.T[list[1]].v[1]].p);
+    Vec3f min(mesh.V[mesh.T[list[1]].v[1]].p);
+    Vec3f t_near;
+    Vec3f t_far;
+    Ray r;
+
+    for (unsigned int i=0;i<3;i++){
+        r.origin[i]=0.0f; r.direction[i]=i*1.0f;
+    }
+    */
+
+    cout << "KDTreeConstruction finish" << endl;
+}
+
 // Loads an OBJ file using tinyOBJ (http://syoyo.github.io/tinyobjloader/)
 bool loadScene(const string & filename, const string & basepath = "") {
     shapes.clear ();
@@ -171,6 +196,7 @@ bool loadScene(const string & filename, const string & basepath = "") {
 
     engine.mesh.set_mesh(shapes, materials);
     engine.mesh.show_properties();
+    initKDTree();
     return true;
 }
 
@@ -261,138 +287,14 @@ void displayRayImage () {
     glEnable (GL_DEPTH_TEST);
 }
 
-
-// Test if a a point of the scene (v) is occulted by any triangle
-// in a epsilon interval
-/*bool isDirectedOcculted (Vertex v, float epsilon) {
-	// Light ray from v
-	Ray lightRay(v.p, lightPos);
-
-    Vec3f intersecT;
-	// Check it there is an intersection between lightRay and a point of the scene
-    if (lightRay.raySceneIntersection(mesh, eye, intersecT))
-		// If the intersection is in a distance < epsilon
-		if (dist(intersecT, v.p) < epsilon)
-			return true;
-	
-	return false;
-}*/
-
-// Compute the BRDF GGX model of light response in a vertice
-/*float reponseBRDF_GGX (Vertex v) {
-	// Parameters in equations
-	float res, fd, fs, d, roughness, alpha, aux, f, g, f0, gi, go;
-	Vec3f wi, vn, wo, wh;
-	
-	// Alpha term (roughness)
-	roughness = 0.5; // replace by 1/materials[i].shininess
-	alpha = pow(roughness, 2.0);
-	
-	// Normal of V
-	vn = v.n;
-	vn.normalize();
-	
-	// Incident light
-	wi = lightPos - v.p;
-	wi.normalize();
-	
-	// Camera
-	wo = polarToCartesian (camEyePolar);
-	
-	// HalfVector
-	wh = wi + wo;
-	wh.normalize();
-	
-	// D(wi, wo): GGX distribution
-	aux = 1 + (pow(alpha, 2.0) - 1.0) * pow(dot(vn, wh), 2.0);
-	d = pow(alpha, 2.0) / (M_PI * pow(aux, 2.0));
-	
-	// F(wi, wh): Fernel term
-	f0 = 0.91; // replace by the reflexion coef materials[i].?
-	aux = dot(wi, wh);
-	if (aux < 0)
-		aux = 0;
-	f = f0 + (1 - f0) * pow((1 - aux), 5.0);
-	
-	// G(wi, w0): Geometric term
-	aux = pow(alpha, 2.0) + (1 - pow(alpha, 2.0) * pow(dot(vn, wi), 2.0));
-	gi = (2 * dot(vn, wi)) / (dot(vn, wi) + sqrt(aux));
-	aux = pow(alpha, 2.0) + (1 - pow(alpha, 2.0) * pow(dot(vn, wo), 2.0));
-	go = (2 * dot(vn, wo)) / (dot(vn, wo) + sqrt(aux));
-	g = gi * go;
-	
-	fd = 1.0 / M_PI; // Diffuse term
-	fs = (d * f * g) / (4 * dot(vn, wi) * dot(vn, wo)); // Specular term
-	
-	// Final response
-	res = 1 * (fd + fs) * dot(vn, wi);
-	
-	return res;
-}*/
-
-inline Vec3f getWorldCam(const Vec3f& camEyePolar) {
-    Vec3f eye = polarToCartesian(camEyePolar);
-    swap (eye[1], eye[2]);
-    eye += sceneCenter;
-    return eye;
-}
-
 // MAIN FUNCTION TO CHANGE !
 void rayTrace () {
     engine.rayTrace(camEyePolar, rayImage, screenWidth, screenHeight);
-    /*cout << "RayTrace start" << endl;
-
-    float height, width, dx, dy;
-    Vec3f w, u, v, c, l;
-
-    cout << screenWidth << " " << screenHeight << " " << aspectRatio << " " << fovAngle << endl;
-
-    height = 2.f * nearPlane *  tan(fovAngle * (M_PI / 360.f));
-    width = height * aspectRatio;
-    dx = width / screenWidth;
-    dy = height / screenHeight;
-
-    Vec3f eye(getWorldCam(camEyePolar));
-
-    w = eye - sceneCenter;
-
-    w.normalize();
-    u = cross(up, w);
-    u.normalize();
-    v = cross(w, u);
-
-    c = eye - w * nearPlane;
-    l = c - (u * (width / 2.f)) - (v * (height / 2.f));
-    Ray ray(mesh, eye, sceneCenter);
-    Vec3f rayDir, location;
-    Vertex intersect;
-    int ind(0);
-
-    for (unsigned int i = 0; i < screenHeight; ++i)
-    {
-        for (unsigned int j = 0; j < screenWidth; ++j)
-        {
-            ind = 3*(j+i*screenWidth);
-            location = l + u * j * dx + v * i * dy + u * (dx / 2.f) + v * (dy / 2.f);
-            rayDir = location - eye;
-            ray.setDirection(rayDir);
-            if (ray.raySceneIntersection(eye, intersect) == 1) {
-                const Vec3f colorResponse = ray.evaluateResponse(intersect, eye);
-                for(auto i = 0; i < 3; ++i) rayImage[ind + i] = colorResponse[i];
-            }
-            else {
-                rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 0;
-            }
-        }
-    }
-
-    cout << "RayTrace finish" << endl;*/
 }
 
 void display () {
     if (rayDisplayMode)
         displayRayImage ();
-        //drawRays();
     else rasterize ();
 }
 
@@ -487,30 +389,6 @@ int main (int argc, char ** argv) {
     glutMotionFunc (motion); // Callback function executed when the mouse move
     glutIdleFunc (idle); // Callback function executed continuously when no other event happens (good for background procesing or animation for instance).
     printUsage (); // By default, display the usage help of the program
-    
-    KDNode* node;
-    
-    std::vector<int> list;    
-    
-	for (unsigned int i=0; i < mesh.T.size(); i++) {
-		list.push_back(i);
-	}   	
-	
-    //node = KDNode ::buildKDTree_test(mesh,list,0.0);
-	
-	/*
-	Vec3f max(mesh.V[mesh.T[list[1]].v[1]].p);
-	Vec3f min(mesh.V[mesh.T[list[1]].v[1]].p);	
-	boundBox(max, min, mesh, list);
-	Vec3f t_near;
-	Vec3f t_far;
-	Ray r;
-	
-	for (unsigned int i=0;i<3;i++){
-		r.origin[i]=0.0f; r.direction[i]=i*1.0f;
-	}	
-    intersectBoxeRay(t_near, t_far, r);
-    */
     glutMainLoop ();
     return 0;
 }
