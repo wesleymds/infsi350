@@ -36,7 +36,7 @@ static unsigned int screenWidth;
 static unsigned int screenHeight;
 static bool rayDisplayMode = false;
 static unsigned int FPS = 0;
-static bool KDTreeMode = true;
+static bool KDTreeMode = false;
 static bool boxMode = false;
 
 // Camera parameters
@@ -66,10 +66,10 @@ static float baseCamTheta;
 static unsigned char * rayImage = NULL;
 
 //Engine settings
-const float epsilon(0.00000001);
+/*const float epsilon(0.00000001);
+vector<KDNode*> tree;*/
+const unsigned int Engine::numberRebonds = 1;
 const Vec3f lightPosRendu(340.f, 500.f, 225.f);
-vector<KDNode*> tree;
-
 KDNode node;
 Mesh mesh;
 Vec3f up(0.f, 1.f, 0.f);

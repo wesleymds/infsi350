@@ -15,7 +15,7 @@ class Engine {
 private:
     float height;
     float width;
-    float dx, dy;
+    float dx, dy, dx_2, dy_2;
 
     unsigned char* rayImage;
 
@@ -32,6 +32,7 @@ public:
     Mesh& mesh;
     KDNode& node;
 	static Vec3f lightPosRendu;
+    static const unsigned int numberRebonds;
 
 
     Engine(const float fovAngle,
@@ -62,7 +63,9 @@ public:
         return eye;
     }
 
-    void rayTrace(const Vec3f& camEyePolar, unsigned char* rayImage, unsigned int _w, unsigned int _h) {
+
+
+    void rayTrace(const Vec3f& camEyePolar, unsigned char* rayImage, unsigned int _w, unsigned int _h, unsigned int numberBound) {
         chrono::time_point<chrono::system_clock> start, end;
         start = chrono::system_clock::now();
         time_t startTime = chrono::system_clock::to_time_t(start);
@@ -72,14 +75,12 @@ public:
         screenHeight = _h;
         aspectRatio = screenWidth/(float)screenHeight;
 
-        //cout << screenWidth << " " << screenHeight << " " << aspectRatio << " " << fovAngle << endl;
-        //cout << sceneCenter << endl;
-
         height = 2.f * tan(fovAngle * (M_PI / 360.f));
         width = height * aspectRatio;
         dx = width / screenWidth;
         dy = height / screenHeight;
-
+        dx_2 = dx / 2.f;
+        dy_2 = dy / 2.f;
 
         Vec3f eye(getWorldCam(camEyePolar));
 
@@ -94,17 +95,15 @@ public:
         l = c - (u * (width / 2.f)) - (v * (height / 2.f));
         Ray ray(mesh, eye);
         Vec3f rayDir, location;
-        Vertex intersect;
         int ind(0);
 		Vec3f colorResponse;
 		
 		Render render(mesh, 2, lightPosRendu);
 		
         for (unsigned int i = 0; i < screenHeight; i++) {
+            ind = i*screenWidth;
             for (unsigned int j = 0; j < screenWidth; j++) {
-                ind = 3*(j+i*screenWidth);
-                //cout << "Ray number = " << ind/3 << endl;
-                location = l + u * j * dx + v * i * dy + u * (dx / 2.f) + v * (dy / 2.f);
+                location = l + u * j * dx + v * i * dy + u * dx_2 + v * dy_2;
                 rayDir = location - eye;
                 ray.setDirection(rayDir);
 
@@ -113,19 +112,14 @@ public:
 				for (unsigned int k = 0; k < 1; k++)
 					colorResponse += render.tracePath(ray, 1, eye);
 
-				colorResponse /= 1.f;
 				colorResponse *= 255.f;
 				
-				cout << i << " " << j << "/";
-				
 				for(unsigned int k = 0; k < 3; k++) {
-					if (colorResponse[k] > 255.f)
-						colorResponse[k] = 255.f;
-					cout << colorResponse[k] << " ";
+                    if (colorResponse[k] > 255.f) colorResponse[k] = 255.f;
 					rayImage[ind + k] = colorResponse[k];
 				}
 				
-				cout << endl;
+                ind +=3;
             }
         }
 
@@ -150,6 +144,8 @@ public:
         width = height * aspectRatio;
         dx = width / screenWidth;
         dy = height / screenHeight;
+        dx_2 = dx / 2.f;
+        dy_2 = dy / 2.f;
 
         Vec3f eye(getWorldCam(camEyePolar));
 
@@ -164,7 +160,6 @@ public:
         l = c - (u * (width / 2.f)) - (v * (height / 2.f));
         Ray ray(mesh, eye);
         Vec3f rayDir, location;
-        Vertex intersect;
         int ind(0);
 		Vec3f colorResponse;
 
@@ -173,33 +168,25 @@ public:
         cout << "screenHeight=" << screenHeight << endl;
         cout << "screenWidth=" << screenWidth << endl;
         for (unsigned int i = 0; i < screenHeight; ++i) {
+            ind = i * screenWidth;
             for (unsigned int j = 0; j < screenWidth; ++j) {
-				ind = 3*(j+i*screenWidth);
-                //cout << "Ray number = " << ind/3 << endl;
-				location = l + u * j * dx + v * i * dy + u * (dx / 2.f) + v * (dy / 2.f);
+                location = l + u * j * dx + v * i * dy + u * dx_2 + v * dy_2;
 				rayDir = location - eye;
 				ray.setDirection(rayDir);
 				
-				// >>>>>> Path tracing
 				colorResponse = Vec3f(0.f, 0.f, 0.f);
 				
+                for (unsigned int k = 0; k < numberRebonds; k++)
+                    colorResponse += render.tracePath(ray, 1, eye);
 				
-                for (unsigned int k = 0; k < 32; k++)
-					colorResponse += render.tracePath(ray, 1, eye);
-				
-                colorResponse /= 32.f;
-				colorResponse *= 255.f;
-				
-                //cout << i << " " << j << " / ";
+                colorResponse *= 255.f/numberRebonds;
 				
 				for(unsigned int k = 0; k < 3; k++) {
-					if (colorResponse[k] > 255.f)
-						colorResponse[k] = 255.f;
-                    //cout << colorResponse[k] << " ";
+                    if (colorResponse[k] > 255.f) colorResponse[k] = 255.f;
 					rayImage[ind + k] = colorResponse[k];
 				}
-				
-                //cout << endl;
+
+                ind +=3;
 			}
         }
 
