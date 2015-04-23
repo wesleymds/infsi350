@@ -16,13 +16,14 @@ class Ray {
 private:
     static const float epsilon;
     const Vec3f origin;
-    Vec3f direction;
     Mesh& mesh;
+	Vec3f direction;
 
     Vec3f idirection;
     int sign[3];
 public:
     float tnear, tfar;
+
 
     void initDirection() {
         for(auto i = 0; i < 3; ++i) idirection[i] = 1.f/direction[i];

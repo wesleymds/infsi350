@@ -26,7 +26,7 @@ public:
 
         // Alpha term (roughness)
         roughness = 1.f / mesh.material(v).shininess;
-        alpha = pow(roughness, 2.0);
+        alpha = pow(roughness, 2.f);
 
         // Normal of V
         vn = v.n;
@@ -35,8 +35,6 @@ public:
 		// Incidence direction
 		wi = lightPosition - v.p;
 		wi.normalize();
-		
-		float vn_dot_wi = std::max(dot(vn, wi), 0.f);
 
         // Emission direction
         wo = camPosition - v.p;
@@ -59,23 +57,24 @@ public:
 			f[i] = f0[i] + (1.f - f0[i]) * pow((1.f - aux), 5.f);
 
         // G(wi, w0): Geometric term
-        aux = pow(alpha, 2.f) + (1.f - pow(alpha, 2.f)) * pow(vn_dot_wi, 2.f);
-        gi = (2 * dot(vn, wi)) / (dot(vn, wi) + sqrt(aux));
+        aux = pow(alpha, 2.f) + (1.f - pow(alpha, 2.f)) * pow(dot(vn, wi), 2.f);
+        gi = (2.f * abs(dot(vn, wi))) / (abs(dot(vn, wi)) + sqrt(aux));
         aux = pow(alpha, 2.f) + (1.f - pow(alpha, 2.f)) * pow(dot(vn, wo), 2.f);
-        go = (2 * dot(vn, wo)) / (dot(vn, wo) + sqrt(aux));
+        go = (2.f * abs(dot(vn, wo))) / (abs(dot(vn, wo)) + sqrt(aux));
         g = gi * go;
 
 		for(unsigned int i = 0; i < 3; ++i) {
-			fs[i] = (d * f[i] * g) / (4.f * vn_dot_wi * dot(vn, wo)); // Specular term
-			if (isinf(fs[i]))
-				fs[i] = 1.f;
+			fs[i] = (d * f[i] * g) / (4.f * abs(dot(vn, wi)) * abs(dot(vn, wo))); // Specular term
 		}
 
         for(unsigned int i = 0; i < 3; ++i)
-            fd[i] = mesh.material(v).diffuse[i] / M_PI; // Diffuse term
+            fd[i] = mesh.material(v).diffuse[i]; // Diffuse term
 
         // Final response
-        res = (fd + fs) * vn_dot_wi;
+        res = (fd + fs) * abs(dot(vn, wi));
+//		if (res[0] > 1.f || res[1] > 1.f || res[2] > 1.f)
+//			printf("test");
+		
         return res;
     }
 	
@@ -111,31 +110,42 @@ public:
 		
 	}
 	
-	Vec3f tracePath(Ray& ray, int depth, Vec3f& camPosition) {
+	Vec3f tracePath(Ray& ray, int depth, Vec3f& camPosition, std::string shape_name) {
 
 		Vertex v; // Vertex hit
 		if (!(ray.raySceneIntersection(camPosition, v)))
 			return Vec3f(0.f, 0.f, 0.f);  // Nothing was hit.
+
+		if (v.shapeName == "short_block" && depth == 2 && shape_name == "floor") {
+			printf("test2");
+		}
+		
+		if (v.shapeName == "green_wall" && depth == 2 && shape_name == "back_wall") {
+			printf("test");
+		}
 		
 		// Compute the direct lightning
 		Vec3f directedLight = evaluateResponse(v, camPosition, this->lightPositionDirect);
 		
 		if (depth == maxDepthPath)
-			//return Vec3f(0.f, 0.f, 0.f);
 			return directedLight; // Bounced enough times.
 		
 		// Pick a random direction from here and keep going
 		Ray newRay(mesh, v.p);
-		Vec3f newRayDirection = randomPointInHemisphereOf(v.n);
+		Vec3f newRayDirection;
+			
+		newRayDirection = randomPointInHemisphereOf(v.n);
 		newRay.setDirection(newRayDirection);
 		
 		// BRDF of the reflected response
 		Vec3f BRDF = BRDF_GGX(v, camPosition, newRayDirection);
 		
 		// Evaluate le response for this new ray
-		Vec3f reflectedLight = tracePath(newRay, depth + 1, v.p);
+		Vec3f reflectedLight = tracePath(newRay, depth + 1, v.p, v.shapeName);
 		
-		return directedLight + reflectedLight * BRDF;
+		Vec3f res = directedLight + (reflectedLight * BRDF);
+		
+		return res;
 	}
 	
 	// Generate random points in the hemisphere aligned with n
@@ -161,10 +171,6 @@ public:
 		float r = random * diff;
 		return a + r;
 	}
-	
-
-
-
 	
 };
 
