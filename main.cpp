@@ -26,8 +26,8 @@
 using namespace std;
 
 // App parameters
-static const unsigned int DEFAULT_SCREENWIDTH = 256;
-static const unsigned int DEFAULT_SCREENHEIGHT = 256;
+static const unsigned int DEFAULT_SCREENWIDTH = 1024;
+static const unsigned int DEFAULT_SCREENHEIGHT = 768;
 static const float DEFAULT_FOVANGLE = 45.f;
 static const char * DEFAULT_SCENE_FILENAME = "scenes/cornell_box/cornell_box.obj";
 static string appTitle ("MCRT - Monte Carlo Ray Tracer");
@@ -320,27 +320,137 @@ void displayRayImage () {
     glEnable (GL_DEPTH_TEST);
 }
 
+/*
+int fastRayTriangleIntersection(Vec3f& p0, Vec3f& p1, Vec3f& p2, Vertex& out) {
+    Vec3f e0, e1, n, q, s, r;
+    float a, b0, b1, b2, t;
+
+    e0 = p1 - p0;
+    e1 = p2 - p0;
+
+    n = cross(e0, e1);
+    n.normalize();
+    q = cross(direction, e1);
+
+    a = dot(e0, q);
+    if ( dot(n, direction) >= 0 || abs(a) < epsilon) return 0;
+
+    s = (origin - p0)/a;
+    r = cross(s, e0);
+    b0 = dot(s, q);
+    b1 = dot(r, direction);
+    b2 = 1 - b0 - b1;
+    if (b0 < 0 || b1 < 0 || b2 < 0) return 0;
+
+    t = dot(e1, r);
+    if (t >= 0) {
+        out.p = origin + t * direction;
+        out.n = n;
+        return 1;
+    }
+    return 0;
+}
+
+int fastRaySceneIntersection(const Vec3f& origin, const Vec3f& direction, Vertex& out) {
+    static unsigned int e(1000000);
+    Vec3f tri[3];
+    float d;
+    bool isIntersect(false);
+    unsigned int index;
+
+    for (size_t s = 0; s < shapes.size (); s++)
+        for (size_t f = 0; f < shapes[s].mesh.indices.size() / 3; f++) {
+            for (size_t v = 0; v < 3; v++) {
+                index = 3*shapes[s].mesh.indices[3*f+v];
+                tri[v][0] = shapes[s].mesh.positions[index];
+                tri[v][1] = shapes[s].mesh.positions[index+1];
+                tri[v][2] = shapes[s].mesh.positions[index+2];
+            }
+            if(rayTriangleIntersection(p0, p1, p2, intersect) == 1) {
+                isIntersect = true;
+                d = (eye - intersect.p).length();
+                if(d < e) {
+                    e = d;
+                    out = intersect;
+                    out.material_id = tri.material_id;
+                    out.shapeName = tri.shapeName; // test
+                    //cout << tri.shapeName << " " << tri.v[0] << endl;
+                }
+            }
+        }
+    return isIntersect ? 1 : 0;
+}
+
+
+void fastRayTrace() {
+    chrono::time_point<chrono::system_clock> start, end;
+    start = chrono::system_clock::now();
+    time_t startTime = chrono::system_clock::to_time_t(start);
+    cout << "FastRayTrace start " << ctime(&startTime);
+
+    float height, width, dx, dy, dx_2, dy_2;
+    Vec3f w, u, v, c, l;
+
+    height = tan(fovAngle * (M_PI / 360.f));
+    width = height * aspectRatio;
+    dx = 3.f * width / (4.f * screenWidth);
+    dy = 3.f * height / (4.f * screenHeight);
+
+
+    Vec3f eye = polarToCartesian (camEyePolar);
+    swap (eye[1], eye[2]); // swap Y and Z to keep the Y vertical
+    eye += camTarget;
+
+    w = eye - camTarget;
+    w.normalize();
+    u = cross(up, w);
+    u.normalize();
+    v = cross(w, u);
+
+    c = eye - w;
+
+    l = c - u * width - v * height;
+    //Ray ray(mesh, eye);
+    Vec3f rayDir, location;
+    Vec3f intersect;
+    //Vertex intersect;
+    unsigned int ind(0);
+
+    //ResponseTrace responseTrace(mesh, lightPosRendu);
+
+    for (unsigned int i = 0; i < screenHeight; ++i)
+    {
+        ind = 3 * i * screenWidth;
+        location = l + v * i * dy;
+        for (unsigned int j = 0; j < screenWidth; ++j)
+        {
+            ind += 3;
+            //cout << "Ray number = " << ind/3 << endl;
+            location += u * j * dx;
+            rayDir = location - eye;
+
+            if (ray.raySceneIntersection(eye, intersect) == 1) {
+                const Vec3f colorResponse = responseTrace.evaluateResponse(intersect, eye);
+                for(auto k = 0; k < 3; ++k) rayImage[ind + k] = colorResponse[k];
+            }
+            else {
+                rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 0;
+            }
+        }
+    }
+
+    end = chrono::system_clock::now();
+    chrono::duration<double> elapsed_seconds = end-start;
+    time_t endTime = chrono::system_clock::to_time_t(end);
+    cout << "FastRayTrace finish " << ctime(&endTime);
+    cout << "Elapsed time: " << elapsed_seconds.count() << endl;
+}
+*/
+
 // MAIN FUNCTION TO CHANGE !
 void rayTrace () {
     if (KDTreeMode) engine.rayTraceKDTree(camEyePolar, rayImage, screenWidth, screenHeight);
     else engine.rayTrace(camEyePolar, rayImage, screenWidth, screenHeight);
-
-    /*Vec3f eye = polarToCartesian (camEyePolar);
-    swap (eye[1], eye[2]); // swap Y and Z to keep the Y vertical
-    eye += camTarget;
-
-    Vec3f origin = eye;
-    Vec3f direction = camTarget - eye;
-    Ray r(origin, direction, mesh);
-
-    Box box;
-    box.coins[0]=Vec3f(0.f, 0.f, 0.f);
-    box.coins[1]=Vec3f(2.f, 2.f, 2.f);
-    cout << "-----" << endl;
-    cout << direction << endl;
-    int a = r.rayBoxIntersection(node.data);
-
-    cout << "Test="<< a << endl;*/
 }
 
 void display () {
