@@ -4,10 +4,10 @@
 #include "Vec3.h"
 #include "Ray.h"
 #include "Mesh.h"
-#include "ResponseTrace.h"
 #include "KDNode.h"
 #include <chrono>
 #include <ctime>
+#include "Render.h"
 
 const float Ray::epsilon(0.00000001);
 
@@ -96,25 +96,36 @@ public:
         Vec3f rayDir, location;
         Vertex intersect;
         int ind(0);
+		Vec3f colorResponse;
 		
-		ResponseTrace responseTrace(mesh, lightPosRendu);
-
-        for (unsigned int i = 0; i < screenHeight; ++i)
-        {
-            for (unsigned int j = 0; j < screenWidth; ++j)
-            {
+		Render render(mesh, 2, lightPosRendu);
+		
+        for (unsigned int i = 0; i < screenHeight; i++) {
+            for (unsigned int j = 0; j < screenWidth; j++) {
                 ind = 3*(j+i*screenWidth);
                 cout << "Ray number = " << ind/3 << endl;
                 location = l + u * j * dx + v * i * dy + u * (dx / 2.f) + v * (dy / 2.f);
                 rayDir = location - eye;
                 ray.setDirection(rayDir);
-                if (ray.raySceneIntersection(eye, intersect) == 1) {
-                    const Vec3f colorResponse = responseTrace.evaluateResponse(intersect, eye);
-                    for(auto k = 0; k < 3; ++k) rayImage[ind + k] = colorResponse[k];
-                }
-                else {
-                    rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 0;
-                }
+
+				colorResponse = Vec3f(0.f, 0.f, 0.f);
+				
+				for (unsigned int k = 0; k < 1; k++)
+					colorResponse += render.tracePath(ray, 1, eye);
+
+				colorResponse /= 1.f;
+				colorResponse *= 255.f;
+				
+				cout << i << " " << j << "/";
+				
+				for(unsigned int k = 0; k < 3; k++) {
+					if (colorResponse[k] > 255.f)
+						colorResponse[k] = 255.f;
+					cout << colorResponse[k] << " ";
+					rayImage[ind + k] = colorResponse[k];
+				}
+				
+				cout << endl;
             }
         }
 
@@ -155,28 +166,41 @@ public:
         Vec3f rayDir, location;
         Vertex intersect;
         int ind(0);
+		Vec3f colorResponse;
 
-        ResponseTrace responseTrace(mesh, lightPosRendu);
+		Render render(mesh, 2, lightPosRendu);
 
         cout << "screenHeight=" << screenHeight << endl;
         cout << "screenWidth=" << screenWidth << endl;
-        for (unsigned int i = 0; i < screenHeight; ++i)
-        {
-            for (unsigned int j = 0; j < screenWidth; ++j)
-            {
-                ind = 3*(j+i*screenWidth);
-                //cout << "Ray number = " << ind/3 << endl;
-                location = l + u * j * dx + v * i * dy + u * (dx / 2.f) + v * (dy / 2.f);
-                rayDir = location - eye;
-                ray.setDirection(rayDir);
-                if (ray.rayKDIntersection(&node, eye, intersect) == 1) {
-                    const Vec3f colorResponse = responseTrace.evaluateResponse(intersect, eye);
-                    for(auto k = 0; k < 3; ++k) rayImage[ind + k] = colorResponse[k];
-                }
-                else {
-                    rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 0;
-                }
-            }
+        for (unsigned int i = 0; i < screenHeight; ++i) {
+            for (unsigned int j = 0; j < screenWidth; ++j) {
+				ind = 3*(j+i*screenWidth);
+				cout << "Ray number = " << ind/3 << endl;
+				location = l + u * j * dx + v * i * dy + u * (dx / 2.f) + v * (dy / 2.f);
+				rayDir = location - eye;
+				ray.setDirection(rayDir);
+				
+				// >>>>>> Path tracing
+				colorResponse = Vec3f(0.f, 0.f, 0.f);
+				
+				
+				for (unsigned int k = 0; k < 1; k++)
+					colorResponse += render.tracePath(ray, 1, eye);
+				
+				colorResponse /= 1.f;
+				colorResponse *= 255.f;
+				
+				cout << i << " " << j << " / ";
+				
+				for(unsigned int k = 0; k < 3; k++) {
+					if (colorResponse[k] > 255.f)
+						colorResponse[k] = 255.f;
+					cout << colorResponse[k] << " ";
+					rayImage[ind + k] = colorResponse[k];
+				}
+				
+				cout << endl;
+			}
         }
 
         end = chrono::system_clock::now();
@@ -189,51 +213,3 @@ public:
 
 
 #endif // ENGINE_h
-
-/*cout << "RayTrace start" << endl;
-
-float height, width, dx, dy;
-Vec3f w, u, v, c, l;
-
-cout << screenWidth << " " << screenHeight << " " << aspectRatio << " " << fovAngle << endl;
-
-height = 2.f * nearPlane *  tan(fovAngle * (M_PI / 360.f));
-width = height * aspectRatio;
-dx = width / screenWidth;
-dy = height / screenHeight;
-
-Vec3f eye(getWorldCam(camEyePolar));
-
-w = eye - sceneCenter;
-
-w.normalize();
-u = cross(up, w);
-u.normalize();
-v = cross(w, u);
-
-c = eye - w * nearPlane;
-l = c - (u * (width / 2.f)) - (v * (height / 2.f));
-Ray ray(mesh, eye, sceneCenter);
-Vec3f rayDir, location;
-Vertex intersect;
-int ind(0);
-
-for (unsigned int i = 0; i < screenHeight; ++i)
-{
-    for (unsigned int j = 0; j < screenWidth; ++j)
-    {
-        ind = 3*(j+i*screenWidth);
-        location = l + u * j * dx + v * i * dy + u * (dx / 2.f) + v * (dy / 2.f);
-        rayDir = location - eye;
-        ray.setDirection(rayDir);
-        if (ray.raySceneIntersection(eye, intersect) == 1) {
-            const Vec3f colorResponse = ray.evaluateResponse(intersect, eye);
-            for(auto i = 0; i < 3; ++i) rayImage[ind + i] = colorResponse[i];
-        }
-        else {
-            rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 0;
-        }
-    }
-}
-
-cout << "RayTrace finish" << endl;*/

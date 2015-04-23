@@ -113,7 +113,9 @@ public:
     int rayBoxIntersection(const Box& box)
     {
         float tnear, tfar, tymin, tymax, tzmin, tzmax;
-        Vec3f coins[2] = box.coins;
+        Vec3f coins[2];
+		coins[0] = box.coins[0];
+		coins[1] = box.coins[1];
 
         tnear = (coins[sign[0]][0] - origin[0]) * idirection[0];
         tfar = (coins[1-sign[0]][0] - origin[0]) * idirection[0];
