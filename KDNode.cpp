@@ -10,13 +10,13 @@ bool coordinate_sort (Vec3f v1, Vec3f v2) {
 }
 
 bool KDNode::isLeaf() {
-    return leftChild == nullptr && rightChild == nullptr;
+    return leftChild == nullptr || rightChild == nullptr;
 }
 
 //list of triangles is input
 KDNode* KDNode::buildKDTree (const Mesh& mesh, const vector<int>& list, float percentage) {
-    cout<<"Input percentage "<< percentage << endl;
-    cout<<"Size of all elements "<< list.size() << endl;
+    //cout<<"Input percentage "<< percentage << endl;
+    //cout<<"Size of all elements "<< list.size() << endl;
 
     if (percentage > 0.55f || list.size() <= 5) return nullptr;
 
@@ -37,8 +37,8 @@ KDNode* KDNode::buildKDTree (const Mesh& mesh, const vector<int>& list, float pe
     }
 
     // axis-aligned bounding box is the cartesian product of max and min
-    data.coins[0] = min;
-    data.coins[1] = max;
+    data.coins[0] = min*1.1f;
+    data.coins[1] = max*1.1f;
 
     // find the max extension
     Vec3f max_ax;
@@ -61,9 +61,11 @@ KDNode* KDNode::buildKDTree (const Mesh& mesh, const vector<int>& list, float pe
     // find mediane (according to max axe) in the current list
     data.mediane = sort_mesh[sort_mesh.size()/2];
 
+    primitives = list;
+
     //split vectices in two lists: left and rigth according to the median and max axe
 
-    cout<<"Mediane coordinate "<< i_max_axis << " Value of mediane axe " << data.mediane[i_max_axis] << endl;
+    //cout<<"Mediane coordinate "<< i_max_axis << " Value of mediane axe " << data.mediane[i_max_axis] << endl;
 
     vector<int> listPu;
     vector<int> listPl;
@@ -97,8 +99,8 @@ KDNode* KDNode::buildKDTree (const Mesh& mesh, const vector<int>& list, float pe
     v.resize(it-v.begin());
     percentage = v.size()/(float)max_size;
 
-    cout<<"Output percentage "<<percentage<<endl;
-    cout<<endl;
+    //cout<<"Output percentage "<<percentage<<endl;
+    //cout<<endl;
 
     // apply recursion if the list is not empty
     leftChild = listPu.size() != list.size() ? buildKDTree(mesh,listPu,percentage) : nullptr;

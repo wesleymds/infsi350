@@ -24,26 +24,26 @@ private:
 public:
     float tnear, tfar;
 
-    Ray(const Vec3f& origin, const Vec3f& direction, Mesh& mesh)
-        : origin(origin), direction(direction), mesh(mesh)
-    {
+    void initDirection() {
         for(auto i = 0; i < 3; ++i) idirection[i] = 1.f/direction[i];
         sign[0] = (idirection[0] < 0);
         sign[1] = (idirection[1] < 0);
         sign[2] = (idirection[2] < 0);
     }
 
+    Ray(const Vec3f& origin, const Vec3f& direction, Mesh& mesh)
+        : origin(origin), direction(direction), mesh(mesh)
+    {
+        initDirection();
+    }
+
     Ray(Mesh& mesh, const Vec3f& origin)
         : origin(origin), mesh(mesh)
-    {
-        for(auto i = 0; i < 3; ++i) idirection[i] = 1.f/direction[i];
-        sign[0] = idirection[0] < 0;
-        sign[1] = idirection[1] < 0;
-        sign[2] = idirection[2] < 0;
-    }
+    {}
 
     void setDirection(const Vec3f& _direction) {
         direction = _direction;
+        initDirection();
     }
 
     int rayTriangleIntersection(const Vec3f& p0, const Vec3f& p1, const Vec3f& p2, Vertex& out) {
@@ -76,6 +76,14 @@ public:
         return 0;
     }
 
+    int rayTriangleIntersection(unsigned int i, Vertex& out) {
+        Triangle tri = mesh.T[i];
+        Vec3f p0 = ivtri(0, tri);
+        Vec3f p1 = ivtri(1, tri);
+        Vec3f p2 = ivtri(2, tri);
+        return rayTriangleIntersection(p0, p1, p2, out);
+    }
+
     int raySceneIntersection(const Vec3f& eye, Vertex& out) {
         Vec3f p0;
         Vec3f p1;
@@ -94,8 +102,8 @@ public:
                     e = d;
                     out = intersect;
                     out.material_id = tri.material_id;
-					out.shapeName = tri.shapeName; // test
-					//cout << tri.shapeName << " " << tri.v[0] << endl;
+                    out.shapeName = tri.shapeName; // test
+                    //cout << tri.shapeName << " " << tri.v[0] << endl;
                 }
             }
         }
@@ -134,89 +142,111 @@ public:
         if (tnear > this->tnear) this->tnear = tnear;
         if (tfar < this->tfar) this->tfar = tfar;
 
-        if (tfar < 0) return 0;
-
         return 1;
     }
 
-    /*int rayKDIntersection(KDNode& root) {
-        struct intersectData
+    int rayKDIntersection(KDNode* root, const Vec3f& eye, Vertex& out) {
+        /*struct intersectData
         {
-            intersectData(unsigned int a_noffs,float a_t_far)
+            intersectData(unsigned int a_noffs, float tfar)
             {
                 far_node_offset = a_noffs;
-                t_far = a_t_far;
+                tfar = _tfar;
             }
             unsigned int far_node_offset;
-            float t_far;
-        };
+            float tfar;
+        };*/
 
-        std::stack<intersectData> nstack;
-        float t_near,t_far;
+        std::stack<float> nstack;
 
-        //TODO
+        float tnear, tfar;
+
         // intersect ray with box
-        bool isIntersected = false;
+        bool isIntersected = rayBoxIntersection(root->data);
 
-        if(t_near <= 0.0f) t_near = 0.0f;
+        tnear = this->tnear;
+        tfar = this->tfar;
 
-        if(t_near >= t_far || !isIntersected) return 0;
+        // box is behind the origin
+        if(tfar < 0.f) return 0;
 
-        unsigned int nodeOffset=0;
+        // we are in box and first intersection is origin
+        if(tnear <= 0.f) tnear = 0.f;
 
-        float t_split = 0;
+        //cout << isIntersected << endl;
+        if(tnear >= tfar || !isIntersected) return 0;
+        //unsigned int nodeOffset=0;
+
+        float tsplit = 0;
 
         while(true)
         {
-            while(!root.isLeaf())
+            while(!root->isLeaf())
             {
                 // get axis number and t according to split_pos plane
-                int axis = root.data.max_axe;
-                t_split = (root.data.mediane - origin[axis])*idirection[axis];
+                int axis = root->data.max_axe;
+                tsplit = (root->data.mediane[axis] - origin[axis])*idirection[axis];
 
-                // get far and near nodes.
+                /*// get far and near nodes.
                 // assume { left = near, far = right }; if(ray.dir[axis] < 0) swap left and right nodes.
                 // this trick with left_or_right[axis] allows us to remove one 'if'
-                /*unsigned int nearNodeOffset = node.GetLeftOffset() + (1-sign[axis]);
-                unsigned int farNodeOffset  = node.GetLeftOffset() + sign[axis];
+                unsigned int nearNodeOffset = node.GetLeftOffset() + (1-sign[axis]);
+                unsigned int farNodeOffset  = node.GetLeftOffset() + sign[axis];*/
 
                 // now kd-tree traversal algorithm specific
-                if(t_split <= t_near)
+                if(tsplit <= tnear)
                 {
+                    root = root->rightChild;
                     //root = kd_tree->GetNodeByOffset(farNodeOffset);
                 }
-                else if(t_split >= t_far)
+                else if(tsplit >= tfar)
                 {
+                    root = root->leftChild;
                     //node = kd_tree->GetNodeByOffset(nearNodeOffset);
                 }
                 else
                 {
-                    nstack.push(Traversal_Data(farNodeOffset,t_far));
+                    nstack.push(tfar);
+                    root = root->leftChild;
+                    tfar = tsplit;
+                    /*nstack.push(Traversal_Data(farNodeOffset,t_far));
                     node = kd_tree->GetNodeByOffset(nearNodeOffset);
-                    t_far = t_split;
+                    t_far = t_split;*/
                 }
 
             }
 
-            float t_hit = IntersectAllPrimitivesInLeaf(ray,node,pHit);
-            if (t_hit <= t_far)
-                return 0xFFFFFFFF; // early ray termination
+            Vertex intersect;
+            isIntersected = false;
+            float d, e(100000.f);
+            for(auto tri: root->primitives) {
+                if (rayTriangleIntersection(tri, intersect)) {
+                    d = (eye - intersect.p).length();
+                    if(d < e) {
+                        e = d;
+                        out = intersect;
+                        isIntersected = true;
+                    }
+                }
+            }
+
+            if (isIntersected && out.p[root->data.max_axe] <= tfar) return 1;
 
             if (nstack.empty())
                 return 0;	// noting else to traverse any more...
 
-            t_near = t_far;
+            tnear = tfar;
 
             //( t_near, t_far ) = stack.pop();
-            nodeOffset = nstack.top().far_node_offset;
+            /*nodeOffset = nstack.top().far_node_offset;
             t_far      = nstack.top().t_far;
+            nstack.pop();*/
+            tfar = nstack.top();
             nstack.pop();
-
-            node = kd_tree->GetNodeByOffset(nodeOffset);
         }
 
         return 0;
-    }*/
+    }
 };
 
 #endif // RAY_H

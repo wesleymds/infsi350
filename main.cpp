@@ -26,16 +26,18 @@
 using namespace std;
 
 // App parameters
-static const unsigned int DEFAULT_SCREENWIDTH = 500;
-static const unsigned int DEFAULT_SCREENHEIGHT = 500;
+static const unsigned int DEFAULT_SCREENWIDTH = 50;
+static const unsigned int DEFAULT_SCREENHEIGHT = 50;
 static const float DEFAULT_FOVANGLE = 45.f;
-static const char * DEFAULT_SCENE_FILENAME = "scenes/cube/cube.obj";
+static const char * DEFAULT_SCENE_FILENAME = "scenes/dabrovic-sponza/sponza.obj";
 static string appTitle ("MCRT - Monte Carlo Ray Tracer");
 static GLint window;
 static unsigned int screenWidth;
 static unsigned int screenHeight;
 static bool rayDisplayMode = false;
 static unsigned int FPS = 0;
+static bool KDTreeMode = true;
+static bool boxMode = false;
 
 // Camera parameters
 static float fovAngle;
@@ -75,8 +77,10 @@ Engine engine(DEFAULT_FOVANGLE,
               sceneCenter,
               DEFAULT_SCREENWIDTH,
               DEFAULT_SCREENHEIGHT,
-              mesh
+              mesh,
+              node
               );
+
 
 void printUsage () {
     std::cerr << std::endl // send a line break to the standard error output
@@ -89,6 +93,7 @@ void printUsage () {
               << " <space>: Toggle raytracing/rasterization (GL)  display mode" << std::endl
               << " r: Ray trace an image from the current point of view" << std::endl
               << " s: Save the current ray traced image under raytraced_image.ppm" << std::endl
+              << " k: KDTree enable/disable" << std::endl
               << " <drag>+<left button>: rotate model" << std::endl
               << " <drag>+<right button>: move model" << std::endl
               << " <drag>+<middle button>: zoom" << std::endl
@@ -158,31 +163,31 @@ void computeSceneBoundingSphere () {
 }
 
 void initKDTree() {
-    cout << "KDTreeConstruction start" << endl;
+    chrono::time_point<chrono::system_clock> start, end;
+    start = chrono::system_clock::now();
+    time_t startTime = chrono::system_clock::to_time_t(start);
+    cout << "KDTreeConstruction start " << ctime(&startTime);
 
-    /*std::vector<int> list;
+    std::vector<int> list;
     list.reserve(mesh.T.size());
     for (unsigned int i=0; i < mesh.T.size(); i++) list.push_back(i);
 
-    node.buildKDTree(mesh, list, 0.f);*/
+    node.buildKDTree(mesh, list, 0.f);
 
-    Vec3f origin(0,10,0);
-    Vec3f direction(0, 1, 0);
-    Ray r(origin, direction, mesh);
-
-    Box box;
-    box.coins[0]=Vec3f(-1,-1,-1);
-    box.coins[1]=Vec3f(1,1,1);
-    int a = r.rayBoxIntersection(box);
-
-    cout << "Test="<< a << endl;
-
-
-    cout << "KDTreeConstruction finish" << endl;
+    end = chrono::system_clock::now();
+    time_t endTime = chrono::system_clock::to_time_t(end);
+    chrono::duration<double> elapsed_seconds = end-start;
+    cout << "KDTreeConstrustion finish " << ctime(&endTime);
+    cout << "Elapsed time: " << elapsed_seconds.count() << endl;
 }
 
 // Loads an OBJ file using tinyOBJ (http://syoyo.github.io/tinyobjloader/)
 bool loadScene(const string & filename, const string & basepath = "") {
+    chrono::time_point<chrono::system_clock> start, end;
+    start = chrono::system_clock::now();
+    time_t startTime = chrono::system_clock::to_time_t(start);
+    cout << "Tiny scene construction start " << ctime(&startTime);
+
     shapes.clear ();
     materials.clear ();
     std::cout << "Loading " << filename << std::endl;
@@ -194,8 +199,25 @@ bool loadScene(const string & filename, const string & basepath = "") {
     computeSceneNormals ();
     computeSceneBoundingSphere ();
 
+    end = chrono::system_clock::now();
+    time_t endTime = chrono::system_clock::to_time_t(end);
+    chrono::duration<double> elapsed_seconds = end-start;
+    cout << "Tiny scene construction finish " << ctime(&endTime);
+    cout << "Elapsed time: " << elapsed_seconds.count() << endl;
+
+    start = chrono::system_clock::now();
+    startTime = chrono::system_clock::to_time_t(start);
+    cout << "Mesh scene construction start " << ctime(&startTime);
+
     engine.mesh.set_mesh(shapes, materials);
     engine.mesh.show_properties();
+
+    end = chrono::system_clock::now();
+    endTime = chrono::system_clock::to_time_t(end);
+    elapsed_seconds = end-start;
+    cout << "Mesh scene construction finish " << ctime(&endTime);
+    cout << "Elapsed time: " << elapsed_seconds.count() << endl;
+
     initKDTree();
     return true;
 }
@@ -276,6 +298,17 @@ void rasterize () {
             }
         }
     glEnd ();
+
+    if (boxMode) {
+        float length = (node.data.coins[1] - node.data.coins[0]).length() / sqrt(2);
+        Vec3f center = (node.data.coins[1] + node.data.coins[0])/2.f;
+        glLineWidth(5.f);
+        glPushMatrix();
+        glTranslated(sceneCenter[0], sceneCenter[1], sceneCenter[2]);
+        glutWireCube(length);
+        glPopMatrix();
+    }
+
     glFlush (); // Ensures any previous OpenGL call has been executed
     glutSwapBuffers ();  // swap the render buffer and the displayed (screen) one
 }
@@ -289,7 +322,25 @@ void displayRayImage () {
 
 // MAIN FUNCTION TO CHANGE !
 void rayTrace () {
-    engine.rayTrace(camEyePolar, rayImage, screenWidth, screenHeight);
+    if (KDTreeMode) engine.rayTraceKDTree(camEyePolar, rayImage, screenWidth, screenHeight);
+    else engine.rayTrace(camEyePolar, rayImage, screenWidth, screenHeight);
+
+    /*Vec3f eye = polarToCartesian (camEyePolar);
+    swap (eye[1], eye[2]); // swap Y and Z to keep the Y vertical
+    eye += camTarget;
+
+    Vec3f origin = eye;
+    Vec3f direction = camTarget - eye;
+    Ray r(origin, direction, mesh);
+
+    Box box;
+    box.coins[0]=Vec3f(0.f, 0.f, 0.f);
+    box.coins[1]=Vec3f(2.f, 2.f, 2.f);
+    cout << "-----" << endl;
+    cout << direction << endl;
+    int a = r.rayBoxIntersection(node.data);
+
+    cout << "Test="<< a << endl;*/
 }
 
 void display () {
@@ -312,6 +363,17 @@ void saveRayImage (const string & filename) {
 
 void keyboard (unsigned char keyPressed, int x, int y) {
     switch (keyPressed) {
+    //boxMode enable/disable
+    case 'b':
+        boxMode = !boxMode;
+        glutPostRedisplay ();
+        break;
+    //KDtree enable/disable
+    case 'k':
+        KDTreeMode = !KDTreeMode;
+        cout << "KDTReeMode " << (KDTreeMode ? "enable" : "disable") << endl;
+        glutPostRedisplay ();
+        break;
     case ' ':
         rayDisplayMode = !rayDisplayMode;
         glutPostRedisplay ();

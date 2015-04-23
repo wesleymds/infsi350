@@ -16,6 +16,7 @@ class KDNode {
 public:
     //variables :
     Box data;
+    std::vector<int> primitives;
     KDNode *leftChild;
     KDNode *rightChild;
 
