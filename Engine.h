@@ -103,7 +103,7 @@ public:
         for (unsigned int i = 0; i < screenHeight; i++) {
             for (unsigned int j = 0; j < screenWidth; j++) {
                 ind = 3*(j+i*screenWidth);
-                cout << "Ray number = " << ind/3 << endl;
+                //cout << "Ray number = " << ind/3 << endl;
                 location = l + u * j * dx + v * i * dy + u * (dx / 2.f) + v * (dy / 2.f);
                 rayDir = location - eye;
                 ray.setDirection(rayDir);
@@ -175,7 +175,7 @@ public:
         for (unsigned int i = 0; i < screenHeight; ++i) {
             for (unsigned int j = 0; j < screenWidth; ++j) {
 				ind = 3*(j+i*screenWidth);
-				cout << "Ray number = " << ind/3 << endl;
+                //cout << "Ray number = " << ind/3 << endl;
 				location = l + u * j * dx + v * i * dy + u * (dx / 2.f) + v * (dy / 2.f);
 				rayDir = location - eye;
 				ray.setDirection(rayDir);
@@ -184,22 +184,22 @@ public:
 				colorResponse = Vec3f(0.f, 0.f, 0.f);
 				
 				
-				for (unsigned int k = 0; k < 1; k++)
+                for (unsigned int k = 0; k < 32; k++)
 					colorResponse += render.tracePath(ray, 1, eye);
 				
-				colorResponse /= 1.f;
+                colorResponse /= 32.f;
 				colorResponse *= 255.f;
 				
-				cout << i << " " << j << " / ";
+                //cout << i << " " << j << " / ";
 				
 				for(unsigned int k = 0; k < 3; k++) {
 					if (colorResponse[k] > 255.f)
 						colorResponse[k] = 255.f;
-					cout << colorResponse[k] << " ";
+                    //cout << colorResponse[k] << " ";
 					rayImage[ind + k] = colorResponse[k];
 				}
 				
-				cout << endl;
+                //cout << endl;
 			}
         }
 

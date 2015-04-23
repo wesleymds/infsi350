@@ -103,9 +103,6 @@ private:
                 T.push_back(tri);
             }
         }
-        /*centerAndScaleToUnit();
-
-        recomputeNormals();*/
     }
 
     void recomputeNormals () {

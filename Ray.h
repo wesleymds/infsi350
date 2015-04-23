@@ -95,15 +95,14 @@ public:
             p0 = ivtri(0, tri);
             p1 = ivtri(1, tri);
             p2 = ivtri(2, tri);
-            if(rayTriangleIntersection(p0, p1, p2, intersect) == 1) {
+            if(rayTriangleIntersection(p0, p1, p2, intersect)) {
                 isIntersect = true;
                 d = (eye - intersect.p).length();
                 if(d < e) {
                     e = d;
                     out = intersect;
                     out.material_id = tri.material_id;
-                    out.shapeName = tri.shapeName; // test
-                    //cout << tri.shapeName << " " << tri.v[0] << endl;
+                    out.shapeName = tri.shapeName; //test
                 }
             }
         }
@@ -148,17 +147,6 @@ public:
     }
 
     int rayKDIntersection(KDNode* root, const Vec3f& eye, Vertex& out) {
-        /*struct intersectData
-        {
-            intersectData(unsigned int a_noffs, float tfar)
-            {
-                far_node_offset = a_noffs;
-                tfar = _tfar;
-            }
-            unsigned int far_node_offset;
-            float tfar;
-        };*/
-
         std::stack<float> nstack;
 
         float tnear, tfar;
