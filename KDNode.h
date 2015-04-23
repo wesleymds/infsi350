@@ -17,14 +17,14 @@ public:
     //variables :
     Box data;
     std::vector<int> primitives;
-    KDNode *leftChild;
-    KDNode *rightChild;
+    KDNode *leftChild = nullptr;
+    KDNode *rightChild = nullptr;
 
     KDNode() {}
     ~KDNode () {}
     
     //compute KDtree for the list of triangles from Mesh
-    KDNode* buildKDTree (const Mesh& mesh, const std::vector<int>& list, float percentage);
+    static KDNode* buildKDTree (const Mesh& mesh, const std::vector<int>& list, float percentage);
 
     bool isLeaf();
 };

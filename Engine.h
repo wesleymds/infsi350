@@ -104,6 +104,7 @@ public:
             for (unsigned int j = 0; j < screenWidth; ++j)
             {
                 ind = 3*(j+i*screenWidth);
+                cout << "Ray number = " << ind/3 << endl;
                 location = l + u * j * dx + v * i * dy + u * (dx / 2.f) + v * (dy / 2.f);
                 rayDir = location - eye;
                 ray.setDirection(rayDir);
@@ -164,13 +165,13 @@ public:
             for (unsigned int j = 0; j < screenWidth; ++j)
             {
                 ind = 3*(j+i*screenWidth);
-                cout << "Ray number = " << ind/3 << endl;
+                //cout << "Ray number = " << ind/3 << endl;
                 location = l + u * j * dx + v * i * dy + u * (dx / 2.f) + v * (dy / 2.f);
                 rayDir = location - eye;
                 ray.setDirection(rayDir);
                 if (ray.rayKDIntersection(&node, eye, intersect) == 1) {
-                    const Vec3f colorResponse = Vec3f(0.f, 0.f, 255.f); //responseTrace.evaluateResponse(intersect, eye);
-                    for(auto i = 0; i < 3; ++i) rayImage[ind + i] = colorResponse[i];
+                    const Vec3f colorResponse = responseTrace.evaluateResponse(intersect, eye);
+                    for(auto k = 0; k < 3; ++k) rayImage[ind + k] = colorResponse[k];
                 }
                 else {
                     rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 0;

@@ -26,10 +26,10 @@
 using namespace std;
 
 // App parameters
-static const unsigned int DEFAULT_SCREENWIDTH = 50;
-static const unsigned int DEFAULT_SCREENHEIGHT = 50;
+static const unsigned int DEFAULT_SCREENWIDTH = 256;
+static const unsigned int DEFAULT_SCREENHEIGHT = 256;
 static const float DEFAULT_FOVANGLE = 45.f;
-static const char * DEFAULT_SCENE_FILENAME = "scenes/dabrovic-sponza/sponza.obj";
+static const char * DEFAULT_SCENE_FILENAME = "scenes/cornell_box/cornell_box.obj";
 static string appTitle ("MCRT - Monte Carlo Ray Tracer");
 static GLint window;
 static unsigned int screenWidth;
@@ -172,7 +172,7 @@ void initKDTree() {
     list.reserve(mesh.T.size());
     for (unsigned int i=0; i < mesh.T.size(); i++) list.push_back(i);
 
-    node.buildKDTree(mesh, list, 0.f);
+    node = *(KDNode::buildKDTree(mesh, list, 0.f));
 
     end = chrono::system_clock::now();
     time_t endTime = chrono::system_clock::to_time_t(end);

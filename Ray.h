@@ -225,6 +225,7 @@ public:
                     if(d < e) {
                         e = d;
                         out = intersect;
+                        out.material_id = mesh.T[tri].material_id;
                         isIntersected = true;
                     }
                 }
