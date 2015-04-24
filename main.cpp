@@ -26,8 +26,8 @@
 using namespace std;
 
 // App parameters
-static const unsigned int DEFAULT_SCREENWIDTH = 500;
-static const unsigned int DEFAULT_SCREENHEIGHT = 500;
+static const unsigned int DEFAULT_SCREENWIDTH = 512;
+static const unsigned int DEFAULT_SCREENHEIGHT = 512;
 static const float DEFAULT_FOVANGLE = 45.f;
 static const char * DEFAULT_SCENE_FILENAME = "scenes/cornell_box/cornell_box.obj";
 static string appTitle ("MCRT - Monte Carlo Ray Tracer");
@@ -70,7 +70,7 @@ KDNode node;
 Mesh mesh;
 Vec3f up(0.f, 1.f, 0.f);
 Vec3f Engine::lightPosRendu = Vec3f (340.f, 500.f, 225.f);
-unsigned int Engine::pathNumber = 1;
+unsigned int Engine::pathNumber = 2;
 unsigned int Engine::pathLength = 2;
 Engine engine(DEFAULT_FOVANGLE,
               DEFAULT_SCREENWIDTH/(float)DEFAULT_SCREENHEIGHT,
@@ -175,6 +175,13 @@ void initKDTree() {
     for (unsigned int i=0; i < mesh.T.size(); i++) list.push_back(i);
 
     node = *(KDNode::buildKDTree(mesh, list, 0.f));
+    Vec3f max = node.data.coins[1];
+    Vec3f min = node.data.coins[0];
+    float length = dist(max, min)/sqrt(2.f);
+    string object = "scenes/cornell_box/cornell_box.obj";
+    Engine::lightPosRendu = Vec3f(max[0] - length/2.f, max[1], max[2] - length/2.f);
+    if (object == DEFAULT_SCENE_FILENAME)
+        Engine::lightPosRendu = Vec3f (340.f, 500.f, 225.f);
 
     end = chrono::system_clock::now();
     time_t endTime = chrono::system_clock::to_time_t(end);
@@ -302,13 +309,19 @@ void rasterize () {
     glEnd ();
 
     if (boxMode) {
-        float length = (node.data.coins[1] - node.data.coins[0]).length() / sqrt(2);
-        Vec3f center = (node.data.coins[1] + node.data.coins[0])/2.f;
+        Vec3f max = node.data.coins[1];
+        Vec3f min = node.data.coins[0];
+        float length = (max - min).length() / sqrt(2);
+        Vec3f center = (max + min)/2.f;
         glLineWidth(5.f);
         glPushMatrix();
         glTranslated(sceneCenter[0], sceneCenter[1], sceneCenter[2]);
         glutWireCube(length);
         glPopMatrix();
+        glBegin (GL_LINE);
+        glVertex3f(min[0], min[1], min[2]);
+        glVertex3f(max[0], max[1], max[2]);
+        glEnd ();
     }
 
     glFlush (); // Ensures any previous OpenGL call has been executed
@@ -324,26 +337,8 @@ void displayRayImage () {
 
 // MAIN FUNCTION TO CHANGE !
 void rayTrace () {
-    /*if (KDTreeMode) engine.rayTrace(camEyePolar, rayImage, screenWidth, screenHeight);
-    else engine.rayTrace(camEyePolar, rayImage, screenWidth, screenHeight);*/
+
     engine.rayTrace(camEyePolar, rayImage, screenWidth, screenHeight, KDTreeMode);
-
-    /*Vec3f eye = polarToCartesian (camEyePolar);
-    swap (eye[1], eye[2]); // swap Y and Z to keep the Y vertical
-    eye += camTarget;
-
-    Vec3f origin = eye;
-    Vec3f direction = camTarget - eye;
-    Ray r(origin, direction, mesh);
-
-    Box box;
-    box.coins[0]=Vec3f(0.f, 0.f, 0.f);
-    box.coins[1]=Vec3f(2.f, 2.f, 2.f);
-    cout << "-----" << endl;
-    cout << direction << endl;
-    int a = r.rayBoxIntersection(node.data);
-
-    cout << "Test="<< a << endl;*/
 }
 
 void display () {

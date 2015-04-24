@@ -97,7 +97,6 @@ public:
         Vec3f colorResponse;
 
         Render render(mesh, node, pathLength, lightPosRendu);
-
         for (unsigned int i = 0; i < screenHeight; i++) {
             ind = 3*i*screenWidth;
             for (unsigned int j = 0; j < screenWidth; j++) {
@@ -121,61 +120,38 @@ public:
             ind += 3;
         }
 
-        end = chrono::system_clock::now();
-        chrono::duration<double> elapsed_seconds = end-start;
-        time_t endTime = chrono::system_clock::to_time_t(end);
-        cout << "RayTrace finish " << (useKDTree ? "with KDTree " : "") << ctime(&endTime);
-        cout << "Elapsed time: " << elapsed_seconds.count() << endl;
-    }
+        // For anti-aliasing
+        /*unsigned int x_rays, y_rays;
+        float dxx, dyy;
+        if (pathNumber == 1) {
+            x_rays = 1;
+            y_rays = 1;
+            dxx = dx_2;
+            dyy = dy_2;
+        } else {
+            x_rays = pathNumber/2;
+            y_rays = pathNumber - x_rays;
+            dxx = dx / x_rays;
+            dyy = dy / y_rays;
+        }
 
-    /*void rayTraceKDTree(const Vec3f& camEyePolar, unsigned char* rayImage, unsigned int _w, unsigned int _h) {
-        chrono::time_point<chrono::system_clock> start, end;
-        start = chrono::system_clock::now();
-        time_t startTime = chrono::system_clock::to_time_t(start);
-        cout << "RayTrace with KDTree start " << ctime(&startTime);
-
-        screenWidth = _w;
-        screenHeight = _h;
-        aspectRatio = screenWidth/(float)screenHeight;
-
-        height = 2.f * tan(fovAngle * (M_PI / 360.f));
-        width = height * aspectRatio;
-        dx = width / screenWidth;
-        dy = height / screenHeight;
-
-        Vec3f eye(getWorldCam(camEyePolar));
-
-        w = eye - sceneCenter;
-        w.normalize();
-        u = cross(up, w);
-        u.normalize();
-        v = cross(w, u);
-
-        c = eye - w;
-
-        l = c - (u * (width / 2.f)) - (v * (height / 2.f));
-        Ray ray(mesh, eye);
-        Vec3f rayDir, location;
-        Vertex intersect;
-        int ind(0);
-        Vec3f colorResponse;
-
-        Render render(mesh, pathLength, lightPosRendu);
-
-        cout << "screenHeight=" << screenHeight << endl;
-        cout << "screenWidth=" << screenWidth << endl;
-        for (unsigned int i = 0; i < screenHeight; ++i) {
+        for (unsigned int i = 0; i < screenHeight; i++) {
             ind = 3*i*screenWidth;
-            for (unsigned int j = 0; j < screenWidth; ++j) {
+            for (unsigned int j = 0; j < screenWidth; j++) {
                 ind = 3*(j+i*screenWidth);
-                location = l + u * j * dx + v * i * dy + u * dx_2 + v * dy_2;
-                rayDir = location - eye;
-                ray.setDirection(rayDir);
-
                 colorResponse = Vec3f(0.f, 0.f, 0.f);
 
-                for (unsigned int k = 0; k < pathNumber; k++)
-                    colorResponse += render.tracePath(ray, 1, eye, "");
+                for (unsigned int x=0; x < x_rays; ++x) {
+                    for (unsigned int y=0; y < y_rays; ++y) {
+
+                    location = l + u * j * dx + v * i * dy + u * x * dxx + v * y * dyy;
+
+                    rayDir = location - eye;
+                    ray.setDirection(rayDir);
+
+                    colorResponse += render.tracePath(ray, 1, useKDTree);
+                    }
+                }
 
                 colorResponse *= 255.f/pathNumber;
 
@@ -183,16 +159,17 @@ public:
                     if (colorResponse[k] > 255.f) colorResponse[k] = 255.f;
                     rayImage[ind + k] = colorResponse[k];
                 }
-                ind += 3;
             }
-        }
+            ind += 3;
+        }*/
 
         end = chrono::system_clock::now();
-        time_t endTime = chrono::system_clock::to_time_t(end);
         chrono::duration<double> elapsed_seconds = end-start;
-        cout << "RayTrace with KDTree finish " << ctime(&endTime);
+        time_t endTime = chrono::system_clock::to_time_t(end);
+        cout << "RayTrace finish " << (useKDTree ? "with KDTree " : "") << ctime(&endTime);
         cout << "Elapsed time: " << elapsed_seconds.count() << endl;
-    }*/
+    }
+
 };
 
 
