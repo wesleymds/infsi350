@@ -85,6 +85,7 @@ class Mesh {
 private:
     std::vector<tinyobj::shape_t> shapes;
 
+    //Generation of Mesh from obj
     void regenerate_from_obj() {
         unsigned int vertex_ind(0), i;
         Triangle tri;
@@ -103,9 +104,6 @@ private:
                 T.push_back(tri);
             }
         }
-        /*centerAndScaleToUnit();
-
-        recomputeNormals();*/
     }
 
     void recomputeNormals () {

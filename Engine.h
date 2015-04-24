@@ -120,7 +120,8 @@ public:
             ind += 3;
         }
 
-        // For anti-aliasing
+        /// For anti-aliasing, work more slowly
+
         /*unsigned int x_rays, y_rays;
         float dxx, dyy;
         if (pathNumber == 1) {
@@ -162,6 +163,7 @@ public:
             }
             ind += 3;
         }*/
+
 
         end = chrono::system_clock::now();
         chrono::duration<double> elapsed_seconds = end-start;

@@ -161,6 +161,7 @@ public:
         return a + r;
     }
 
+    // Generate random points weighted by cosinus
     Vec3f randomPointCosinusInHemisphereOf(Vec3f& n) {
 
         float a = RandomFloat(0.f, 1.f);

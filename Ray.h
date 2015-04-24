@@ -84,6 +84,10 @@ public:
         return rayTriangleIntersection(p0, p1, p2, out);
     }
 
+    /// raySceneIntersection
+    /// out - intersection point
+    /// lightPos - light position
+    /// isFirstNeed - we return first intersection for direct shadows
     int raySceneIntersection(Vertex& out, Vec3f& lightPos, bool isFirstNeed = false ) {
         Vec3f p0;
         Vec3f p1;
@@ -110,6 +114,7 @@ public:
         return isIntersect && !isFirstNeed ? 1 : 0;
     }
 
+    /// Intersection with box
     int rayBoxIntersection(const Box& box)
     {
         float tnear, tfar, tymin, tymax, tzmin, tzmax;
@@ -147,6 +152,7 @@ public:
         return 1;
     }
 
+    /// rayKDIntersection - intersection with KDNode
     int rayKDIntersection(KDNode* root, Vertex& out, Vec3f& lightPos, bool isFirstNeed = false) {
         std::stack<float> nstack;
 
@@ -178,31 +184,20 @@ public:
                 int axis = root->data.max_axe;
                 tsplit = (root->data.mediane[axis] - origin[axis])*idirection[axis];
 
-                /*// get far and near nodes.
-                // assume { left = near, far = right }; if(ray.dir[axis] < 0) swap left and right nodes.
-                // this trick with left_or_right[axis] allows us to remove one 'if'
-                unsigned int nearNodeOffset = node.GetLeftOffset() + (1-sign[axis]);
-                unsigned int farNodeOffset  = node.GetLeftOffset() + sign[axis];*/
-
                 // now kd-tree traversal algorithm specific
                 if(tsplit <= tnear)
                 {
                     root = root->rightChild;
-                    //root = kd_tree->GetNodeByOffset(farNodeOffset);
                 }
                 else if(tsplit >= tfar)
                 {
                     root = root->leftChild;
-                    //node = kd_tree->GetNodeByOffset(nearNodeOffset);
                 }
                 else
                 {
                     nstack.push(tfar);
                     root = root->leftChild;
                     tfar = tsplit;
-                    /*nstack.push(Traversal_Data(farNodeOffset,t_far));
-                    node = kd_tree->GetNodeByOffset(nearNodeOffset);
-                    t_far = t_split;*/
                 }
 
             }
