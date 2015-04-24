@@ -15,7 +15,6 @@ using namespace std;
 class Ray {
 private:
     static const float epsilon;
-    const Vec3f origin;
     Vec3f direction;
     Mesh& mesh;
 
@@ -23,6 +22,7 @@ private:
     int sign[3];
 public:
     float tnear, tfar;
+    Vec3f origin;
 
     void initDirection() {
         for(auto i = 0; i < 3; ++i) idirection[i] = 1.f/direction[i];
@@ -32,13 +32,13 @@ public:
     }
 
     Ray(const Vec3f& origin, const Vec3f& direction, Mesh& mesh)
-        : origin(origin), direction(direction), mesh(mesh)
+        : direction(direction), mesh(mesh), origin(origin)
     {
         initDirection();
     }
 
     Ray(Mesh& mesh, const Vec3f& origin)
-        : origin(origin), mesh(mesh)
+        : mesh(mesh), origin(origin)
     {}
 
     void setDirection(const Vec3f& _direction) {
@@ -84,7 +84,7 @@ public:
         return rayTriangleIntersection(p0, p1, p2, out);
     }
 
-    int raySceneIntersection(const Vec3f& eye, Vertex& out) {
+    int raySceneIntersection(Vertex& out, Vec3f& lightPos, bool isFirstNeed = false ) {
         Vec3f p0;
         Vec3f p1;
         Vec3f p2;
@@ -95,18 +95,19 @@ public:
             p0 = ivtri(0, tri);
             p1 = ivtri(1, tri);
             p2 = ivtri(2, tri);
-            if(rayTriangleIntersection(p0, p1, p2, intersect)) {
+            if(rayTriangleIntersection(p0, p1, p2, intersect) == 1) {
+                d = (origin - intersect.p).length();
                 isIntersect = true;
-                d = (eye - intersect.p).length();
                 if(d < e) {
                     e = d;
                     out = intersect;
                     out.material_id = tri.material_id;
-                    out.shapeName = tri.shapeName; //test
+                    out.shapeName = tri.shapeName; // test
+                    if(isFirstNeed && (d < dist(lightPos, origin))) return 1;
                 }
             }
         }
-        return isIntersect ? 1 : 0;
+        return isIntersect && !isFirstNeed ? 1 : 0;
     }
 
     int rayBoxIntersection(const Box& box)
@@ -146,7 +147,7 @@ public:
         return 1;
     }
 
-    int rayKDIntersection(KDNode* root, const Vec3f& eye, Vertex& out) {
+    int rayKDIntersection(KDNode* root, Vertex& out, Vec3f& lightPos, bool isFirstNeed = false) {
         std::stack<float> nstack;
 
         float tnear, tfar;
@@ -211,27 +212,23 @@ public:
             float d, e(100000.f);
             for(auto tri: root->primitives) {
                 if (rayTriangleIntersection(tri, intersect)) {
-                    d = (eye - intersect.p).length();
+                    d = (origin - intersect.p).length();
                     if(d < e) {
                         e = d;
                         out = intersect;
                         out.material_id = mesh.T[tri].material_id;
                         isIntersected = true;
+                        if(isFirstNeed && d < dist(lightPos, origin)) return 1;
                     }
                 }
             }
 
-            if (isIntersected && out.p[root->data.max_axe] <= tfar) return 1;
+            if (isIntersected && !isFirstNeed && out.p[root->data.max_axe] <= tfar) return 1;
 
             if (nstack.empty())
                 return 0;	// noting else to traverse any more...
 
             tnear = tfar;
-
-            //( t_near, t_far ) = stack.pop();
-            /*nodeOffset = nstack.top().far_node_offset;
-            t_far      = nstack.top().t_far;
-            nstack.pop();*/
             tfar = nstack.top();
             nstack.pop();
         }

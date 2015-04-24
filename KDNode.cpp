@@ -1,5 +1,6 @@
 #include "KDNode.h"
-
+#include <vector>
+#include <algorithm>
 using namespace std;
 
 int i_max_axis;
@@ -124,111 +125,40 @@ KDNode* KDNode::buildKDTree (const Mesh& mesh, const vector<int>& list, float pe
     return n;
 }
 
-//list of triangles is input
-KDNode* fastBuildKDNode (const tinyobj::shape_t& shape, vector<int> list, float percentage) {
-    if (percentage > 0.55f || list.empty()) return nullptr;
 
-    unsigned int index;
-    KDNode* n = new KDNode;
 
-    float max[3], min[3];
-    copy(shape.mesh.positions.begin(), shape.mesh.positions.begin() + 3, min);
-    copy(shape.mesh.positions.begin(), shape.mesh.positions.begin() + 3, max);
-
-    for (size_t l=0; l<list.size(); l++) {
-        for (size_t v = 0; v < 3; v++) {
-            cout << list[l] << endl;
-            index = 3*shape.mesh.indices[3*list[l]+v];
-            for(size_t j = 0; j < 3; j++) {
-                if (max[index+j] < shape.mesh.positions[index+j]) max[index+j] = shape.mesh.positions[index+j];
-                if (min[index+j] > shape.mesh.positions[index+j]) min[index+j] = shape.mesh.positions[index+j];
+/*
+    cout<<"sort mesh after sorting "<<endl;
+    for (unsigned int j = 0; j<list.size();j++){
+        cout<<"Triangle "<< j <<" "<<endl;
+         for (unsigned int k=0; k<3; k++){
+             cout<<"Vertex "<< k << endl;
+            for (unsigned int i=0;i<3;i++) {
+                cout<<sort_mesh[3*j+k][i]<<" ";
             }
+            cout<<endl;
         }
+        cout<<endl;
     }
+ */
 
-    // axis-aligned bounding box is the cartesian product of max and min
-    n->data.coins[0] = Vec3f(min[0], min[1], min[2])*1.1f;
-    n->data.coins[1] = Vec3f(max[0], max[1], max[2])*1.1f;
-
-    // find the max extension
-    float max_ax[3];
-    for (unsigned int i=0; i<3; ++i) max_ax[i] = max[i] - min[i];
-
-    // find the axe that corresponds to the maximum extension
-    i_max_axis = max_ax[0] < max_ax[1] ? 1 : 0;
-    i_max_axis = max_ax[2] < max_ax[i_max_axis] ? i_max_axis : 2;
-    n->data.max_axe = i_max_axis;
-
-    // find median sample:
-    vector<Vec3f> sort_mesh(3*list.size());
-    for (auto f: list)
-        for (size_t v = 0; v < 3; v++) {
-            index = 3*shape.mesh.indices[3*f+v];
-            sort_mesh[3*f+v] = Vec3f(shape.mesh.positions[index],
-                                     shape.mesh.positions[index + 1],
-                    shape.mesh.positions[index + 2]);
-        }
-
-    // sort
-    sort(sort_mesh.begin(), sort_mesh.end(), coordinate_sort);
-
-    // find mediane (according to max axe) in the current list
-    n->data.mediane = sort_mesh[sort_mesh.size()/2];
-
-    n->primitives = list;
-
-    //split vectices in two lists: left and rigth according to the median and max axe
-
-    vector<int> listPu;
-    vector<int> listPl;
-    vector<int> check(list.size(), 0);
-
-    for (unsigned int j=0; j<list.size(); j++) {
-        index = 3*shape.mesh.indices[3*list[j]+i_max_axis];
-        check[j] += (shape.mesh.positions[index] < n->data.mediane[i_max_axis]);
-    }
-
-    for (unsigned int j=0;j<list.size();j++){
-        if (check[j]==3) listPu.push_back(list[j]);
-        if (check[j]<3 && 0<check[j]) {
-            listPu.push_back(list[j]);
-            listPl.push_back(list[j]);
-        }
-        if (check[j]==0) listPl.push_back(list[j]);
-    }
-
-    // compute intersection of two point lists in percentage
-
-    //sort element in the array
-    sort (listPu.begin(),listPu.end());
-    sort (listPl.begin(),listPl.end());
-
-    // find the maximal size of the list
-    unsigned int max_size = listPu.size()>listPl.size() ? listPu.size() : listPl.size();
-
-    vector<int> v(max_size);
-    vector<int>::iterator it;
-    it=set_intersection (listPu.begin(),listPu.end(), listPl.begin(),listPl.end(), v.begin());
-    v.resize(it-v.begin());
-    percentage = v.size()/(float)max_size;
-
-    // apply recursion if the list is not empty
-    n->leftChild = (listPu.size() != list.size()) ? fastBuildKDNode(shape,listPu,percentage) : nullptr;
-    n->rightChild = (listPl.size() != list.size()) ? fastBuildKDNode(shape,listPl,percentage) : nullptr;
-
-    return n;
+/*
+for (unsigned int j=0;j<list.size();j++){
+    cout<<endl;
+    cout<<"Triangle "<< j <<endl;
+    cout<<"Coordinates imaxaxis "<<endl;
+    for (unsigned int k=0;k<3;k++)
+        cout<<" "<<mesh.V[mesh.T[list[j]].v[k]].p[i_max_axis]<<" ";
 }
+*/
 
-void KDNode::fastBuildKDTree (const std::vector<tinyobj::shape_t>& shapes, vector<KDNode*>& tree) {
-    KDNode* node;
-    for(size_t s=0; s < shapes.size(); ++s) {
-        vector<int> list;
-        unsigned int number_tri = shapes[s].mesh.indices.size() / 3;
-        list.reserve(number_tri);
-        for (unsigned int i=0; i < number_tri; i++) list.push_back(i);
-        node = fastBuildKDNode(shapes[s], list, 0.f);
-        tree.push_back(node);
-    }
+/*
+//cout<<" listPu "<<endl;
+for(unsigned int i=0;i<listPu.size();i++){
+    //cout<< listPu[i]<<" ";
 }
-
-
+//cout<<endl;
+//cout<<" listPl "<<endl;
+for(unsigned int i=0;i<listPl.size();i++){
+    // cout<< listPl[i]<<" ";
+}*/

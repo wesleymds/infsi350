@@ -8,17 +8,20 @@
 #include "Ray.h"
 
 class Render {
+private:
+    float epsilon = 0.01;
 public:
     Mesh& mesh;
+    KDNode& node;
 	int maxDepthPath;
 	Vec3f& lightPositionDirect;
 
-    Render(Mesh& mesh, int maxDepthPath, Vec3f& lightPositionDirect)
-        : mesh(mesh), maxDepthPath(maxDepthPath), lightPositionDirect(lightPositionDirect)
+    Render(Mesh& mesh, KDNode& node, int maxDepthPath, Vec3f& lightPositionDirect)
+        : mesh(mesh), node(node), maxDepthPath(maxDepthPath), lightPositionDirect(lightPositionDirect)
     {}
 
     // Compute the BRDF GGX model of light response in a vertice
-    Vec3f BRDF_GGX (Vertex& v, Vec3f& camPosition, Vec3f& lightPosition) {
+    Vec3f BRDF_GGX (Vertex& v, Vec3f& camPosition, Vec3f& lightDirection) {
         // Parameters in equations
         float d, roughness, alpha, aux, g, gi, go;
         Vec3f wi, vn, wo, wh;
@@ -26,17 +29,15 @@ public:
 
         // Alpha term (roughness)
         roughness = 1.f / mesh.material(v).shininess;
-        alpha = pow(roughness, 2.0);
+        alpha = pow(roughness, 2.f);
 
         // Normal of V
         vn = v.n;
         vn.normalize();
 
 		// Incidence direction
-		wi = lightPosition - v.p;
+        wi = lightDirection;
 		wi.normalize();
-		
-		float vn_dot_wi = std::max(dot(vn, wi), 0.f);
 
         // Emission direction
         wo = camPosition - v.p;
@@ -46,9 +47,11 @@ public:
         wh = wi + wo;
         wh.normalize();
 
+        float a_2 = pow(alpha, 2.f);
+
         // D(wi, wo): GGX distribution
-        aux = 1 + (pow(alpha, 2.f) - 1.f) * pow(dot(vn, wh), 2.f);
-        d = pow(alpha, 2.f) / (M_PI * pow(aux, 2.f));
+        aux = 1 + (a_2 - 1.f) * pow(dot(vn, wh), 2.f);
+        d = a_2 / (M_PI * pow(aux, 2.f));
 
         // F(wi, wh): Fernel term
         for(unsigned int i = 0; i < 3; ++i)
@@ -58,84 +61,80 @@ public:
         for(unsigned int i = 0; i < 3; ++i)
 			f[i] = f0[i] + (1.f - f0[i]) * pow((1.f - aux), 5.f);
 
+        float vnwi = dot(vn, wi);
+        float vnwo = dot(vn, wo);
+
         // G(wi, w0): Geometric term
-        aux = pow(alpha, 2.f) + (1.f - pow(alpha, 2.f)) * pow(vn_dot_wi, 2.f);
-        gi = (2 * dot(vn, wi)) / (dot(vn, wi) + sqrt(aux));
-        aux = pow(alpha, 2.f) + (1.f - pow(alpha, 2.f)) * pow(dot(vn, wo), 2.f);
-        go = (2 * dot(vn, wo)) / (dot(vn, wo) + sqrt(aux));
+        aux = a_2 + (1.f - a_2) * pow(vnwi, 2.f);
+        gi = (2.f * abs(vnwi)) / (abs(vnwi) + sqrt(aux));
+        aux = a_2 + (1.f - a_2) * pow(vnwo, 2.f);
+        go = (2.f * abs(vnwo)) / (abs(vnwo) + sqrt(aux));
         g = gi * go;
 
 		for(unsigned int i = 0; i < 3; ++i) {
-			fs[i] = (d * f[i] * g) / (4.f * vn_dot_wi * dot(vn, wo)); // Specular term
-			if (isinf(fs[i]))
-				fs[i] = 1.f;
+            fs[i] = (d * f[i] * g) / (4.f * abs(vnwi) * abs(vnwo)); // Specular term
 		}
 
         for(unsigned int i = 0; i < 3; ++i)
-            fd[i] = mesh.material(v).diffuse[i] / M_PI; // Diffuse term
+            fd[i] = mesh.material(v).diffuse[i]; // Diffuse term
 
         // Final response
-        res = (fd + fs) * vn_dot_wi;
+        res = (fd + fs) * (vnwi <  0.f ? 0.f : vnwi);
+		
         return res;
     }
 	
 	// Test if a a point of the scene (v) is occulted by any triangle
-	bool isDirectedOcculted (Vertex& v) {
-		
+    bool isDirectedOcculted (Vertex& v, bool useKDTree = true) {
 		// Light ray from v
 		Vec3f direction = this->lightPositionDirect - v.p;
 		direction.normalize();
 		Ray lightRay(v.p, direction, mesh);
-
-		Vertex v1, v2, v3, intersect;
-		bool isIntersected = false;
-		// Check intersection with all triangles of the mesh with lightRay
-		for (unsigned int i = 0; i < mesh.T.size (); i++) {
-			v1 = mesh.V[mesh.T[i].v[0]];
-			v2 = mesh.V[mesh.T[i].v[1]];
-			v3 = mesh.V[mesh.T[i].v[2]];
-			isIntersected = lightRay.rayTriangleIntersection(v1.p, v2.p, v3.p, intersect);
-			if (isIntersected && dist(intersect.p, v.p) < dist(this->lightPositionDirect, v.p))
-				return true;
-		}
-		
+        Vertex intersect;
+        if (useKDTree) {
+            return lightRay.rayKDIntersection(&node, intersect, this->lightPositionDirect, true);
+        } else {
+            return lightRay.raySceneIntersection(intersect, this->lightPositionDirect, true);
+        }
 		return false;
 	}
 	
-	Vec3f evaluateResponse(Vertex& v, Vec3f& camPosition, Vec3f& lightPosition) {
-				
-		if (isDirectedOcculted(v))
+    Vec3f evaluateResponse(Vertex& v, Vec3f& camPosition, Vec3f& lightPosition, bool useKDTree = true) {
+        if (isDirectedOcculted(v, useKDTree))
 			return Vec3f (0.f, 0.f, 0.f);
-		else
-			return BRDF_GGX(v, camPosition, lightPosition);
-		
+        else {
+            Vec3f lightDirection = lightPosition - v.p;
+            return BRDF_GGX(v, camPosition, lightDirection);
+        }
 	}
 	
-	Vec3f tracePath(Ray& ray, int depth, Vec3f& camPosition) {
-
+    Vec3f tracePath(Ray& ray, int depth, bool useKDTree = true) {
 		Vertex v; // Vertex hit
-		if (!(ray.raySceneIntersection(camPosition, v)))
-			return Vec3f(0.f, 0.f, 0.f);  // Nothing was hit.
-		
+        const bool isIntersected = useKDTree ? ray.rayKDIntersection(&node, v, this->lightPositionDirect) : ray.raySceneIntersection(v, this->lightPositionDirect);
+        if (!isIntersected) return Vec3f(0.f, 0.f, 0.f);  // Nothing was hit.
+
 		// Compute the direct lightning
-		Vec3f directedLight = evaluateResponse(v, camPosition, this->lightPositionDirect);
+        Vec3f directedLight = evaluateResponse(v, ray.origin, this->lightPositionDirect, useKDTree);
 		
-		if (depth == maxDepthPath)
-			//return Vec3f(0.f, 0.f, 0.f);
+        if (depth == maxDepthPath)
 			return directedLight; // Bounced enough times.
 		
 		// Pick a random direction from here and keep going
 		Ray newRay(mesh, v.p);
-		Vec3f newRayDirection = randomPointInHemisphereOf(v.n);
+		Vec3f newRayDirection;
+			
+		newRayDirection = randomPointInHemisphereOf(v.n);
 		newRay.setDirection(newRayDirection);
 		
 		// BRDF of the reflected response
-		Vec3f BRDF = BRDF_GGX(v, camPosition, newRayDirection);
+        Vec3f BRDF = BRDF_GGX(v, ray.origin, newRayDirection);
 		
 		// Evaluate le response for this new ray
-		Vec3f reflectedLight = tracePath(newRay, depth + 1, v.p);
+        Vec3f reflectedLight = tracePath(newRay, depth + 1);
 		
-		return directedLight + reflectedLight * BRDF;
+		Vec3f res = directedLight + (reflectedLight * BRDF);
+		
+        return res;
 	}
 	
 	// Generate random points in the hemisphere aligned with n
@@ -155,16 +154,12 @@ public:
 		return v;
 	}
 		
-	float RandomFloat(float a, float b) {
+    inline float RandomFloat(float a, float b) {
 		float random = ((float) rand()) / (float) RAND_MAX;
 		float diff = b - a;
 		float r = random * diff;
 		return a + r;
 	}
-	
-
-
-
 	
 };
 

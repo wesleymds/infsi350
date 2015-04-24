@@ -2,9 +2,6 @@
 #define KDNODE_INCLUDED
 
 #include "Mesh.h"
-#include <vector>
-#include <algorithm>
-#include "tiny_obj_loader.h"
 
 //KDNode tree
 
@@ -28,8 +25,6 @@ public:
     
     //compute KDtree for the list of triangles from Mesh
     static KDNode* buildKDTree (const Mesh& mesh, const std::vector<int>& list, float percentage);
-
-    static void fastBuildKDTree (const std::vector<tinyobj::shape_t>&, std::vector<KDNode*>& tree);
 
     bool isLeaf();
 };

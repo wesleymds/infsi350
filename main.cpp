@@ -26,8 +26,8 @@
 using namespace std;
 
 // App parameters
-static const unsigned int DEFAULT_SCREENWIDTH = 1024;
-static const unsigned int DEFAULT_SCREENHEIGHT = 768;
+static const unsigned int DEFAULT_SCREENWIDTH = 500;
+static const unsigned int DEFAULT_SCREENHEIGHT = 500;
 static const float DEFAULT_FOVANGLE = 45.f;
 static const char * DEFAULT_SCENE_FILENAME = "scenes/cornell_box/cornell_box.obj";
 static string appTitle ("MCRT - Monte Carlo Ray Tracer");
@@ -36,7 +36,7 @@ static unsigned int screenWidth;
 static unsigned int screenHeight;
 static bool rayDisplayMode = false;
 static unsigned int FPS = 0;
-static bool KDTreeMode = false;
+static bool KDTreeMode = true;
 static bool boxMode = false;
 
 // Camera parameters
@@ -66,14 +66,12 @@ static float baseCamTheta;
 static unsigned char * rayImage = NULL;
 
 //Engine settings
-/*const float epsilon(0.00000001);
-vector<KDNode*> tree;*/
-const unsigned int Engine::numberRebonds = 1;
-const Vec3f lightPosRendu(340.f, 500.f, 225.f);
 KDNode node;
 Mesh mesh;
 Vec3f up(0.f, 1.f, 0.f);
-Vec3f Engine::lightPosRendu = lightPosRendu;
+Vec3f Engine::lightPosRendu = Vec3f (340.f, 500.f, 225.f);
+unsigned int Engine::pathNumber = 1;
+unsigned int Engine::pathLength = 2;
 Engine engine(DEFAULT_FOVANGLE,
               DEFAULT_SCREENWIDTH/(float)DEFAULT_SCREENHEIGHT,
               up,
@@ -177,8 +175,6 @@ void initKDTree() {
     for (unsigned int i=0; i < mesh.T.size(); i++) list.push_back(i);
 
     node = *(KDNode::buildKDTree(mesh, list, 0.f));
-
-    //KDNode::fastBuildKDTree(shapes, tree);
 
     end = chrono::system_clock::now();
     time_t endTime = chrono::system_clock::to_time_t(end);
@@ -328,9 +324,26 @@ void displayRayImage () {
 
 // MAIN FUNCTION TO CHANGE !
 void rayTrace () {
-    if (KDTreeMode) engine.rayTraceKDTree(camEyePolar, rayImage, screenWidth, screenHeight);
-    else engine.rayTrace(camEyePolar, rayImage, screenWidth, screenHeight);
-    //fastRayTrace();
+    /*if (KDTreeMode) engine.rayTrace(camEyePolar, rayImage, screenWidth, screenHeight);
+    else engine.rayTrace(camEyePolar, rayImage, screenWidth, screenHeight);*/
+    engine.rayTrace(camEyePolar, rayImage, screenWidth, screenHeight, KDTreeMode);
+
+    /*Vec3f eye = polarToCartesian (camEyePolar);
+    swap (eye[1], eye[2]); // swap Y and Z to keep the Y vertical
+    eye += camTarget;
+
+    Vec3f origin = eye;
+    Vec3f direction = camTarget - eye;
+    Ray r(origin, direction, mesh);
+
+    Box box;
+    box.coins[0]=Vec3f(0.f, 0.f, 0.f);
+    box.coins[1]=Vec3f(2.f, 2.f, 2.f);
+    cout << "-----" << endl;
+    cout << direction << endl;
+    int a = r.rayBoxIntersection(node.data);
+
+    cout << "Test="<< a << endl;*/
 }
 
 void display () {
@@ -445,201 +458,6 @@ int main (int argc, char ** argv) {
     return 0;
 }
 
-/*int fastRayTriangleIntersection(const Vec3f* tri, const Vec3f& origin,const Vec3f& direction, Vec3f* out) {
-    const Vec3f& p0 = tri[0];
-    const Vec3f& p1 = tri[1];
-    const Vec3f& p2 = tri[2];
-
-    Vec3f e0, e1, n, q, s, r;
-    float a, b0, b1, b2, t;
-
-    e0 = p1 - p0;
-    e1 = p2 - p0;
-
-    n = cross(e0, e1);
-    n.normalize();
-    q = cross(direction, e1);
-
-    a = dot(e0, q);
-    if ( dot(n, direction) >= 0 || abs(a) < epsilon) return 0;
-
-    s = (origin - p0)/a;
-    r = cross(s, e0);
-    b0 = dot(s, q);
-    b1 = dot(r, direction);
-    b2 = 1 - b0 - b1;
-    if (b0 < 0 || b1 < 0 || b2 < 0) return 0;
-
-    t = dot(e1, r);
-    if (t >= 0) {
-        out[0] = origin + t * direction;
-        out[1] = n;
-        return 1;
-    }
-    return 0;
-}
-
-int fastRaySceneIntersection(const Vec3f& origin, const Vec3f& direction, Vec3f* out, unsigned int& out_mat) {
-    unsigned int e(1000000), index;
-    static unsigned int sizeVec3f = sizeof(Vec3f);
-    static Vec3f* tri = new Vec3f[sizeVec3f*3];
-    static Vec3f* intersect = new Vec3f[sizeVec3f*2];
-    float d;
-    bool isIntersect(false);
-
-    for (size_t s = 0; s < shapes.size (); s++)
-        for (size_t f = 0; f < shapes[s].mesh.indices.size() / 3; f++) {
-            for (size_t v = 0; v < 3; v++) {
-                index = 3*shapes[s].mesh.indices[3*f+v];
-                tri[v][0] = shapes[s].mesh.positions[index];
-                tri[v][1] = shapes[s].mesh.positions[index+1];
-                tri[v][2] = shapes[s].mesh.positions[index+2];
-            }
-            if(fastRayTriangleIntersection(tri, origin, direction, intersect)) {
-                isIntersect = true;
-                d = (origin - intersect[0]).length();
-                if(d < e) {
-                    e = d;
-                    memcpy(out, intersect, sizeVec3f*2);
-                    out_mat = shapes[s].mesh.material_ids[f];
-                }
-            }
-        }
-    return isIntersect ? 1 : 0;
-}
-
-float* fastBRDF_GGX (Vec3f* intersect, unsigned int mat,const Vec3f& camPosition) {
-    // Parameters in equations
-    float d, alpha, aux, g, gi, go;
-    Vec3f wi, vn, wo, wh;
-    float fs[3], fd[3], f[3], f0[3];
-    unsigned int float_s_3 = sizeof(float) * 3;
-    static float* res = new float[float_s_3];
-    const tinyobj::material_t material = materials[mat];
-
-    // Alpha term (roughness)
-    alpha = pow(material.shininess, -2.0);
-
-    // Normal of V
-    vn = intersect[1];
-    vn.normalize();
-
-    // Incidence direction
-    wi = lightPosRendu - intersect[0];
-    wi.normalize();
-
-    float vn_dot_wi = max(dot(vn, wi), 0.f);
-
-    // Emission direction
-    wo = camPosition - intersect[0];
-    wo.normalize();
-
-    // HalfVector
-    wh = wi + wo;
-    wh.normalize();
-
-    // D(wi, wo): GGX distribution
-    float alpha_2 = pow(alpha, 2.f);
-    aux = 1 + (alpha_2 - 1.f) * pow(dot(vn, wh), 2.f);
-    d = alpha_2 / (M_PI * pow(aux, 2.f));
-
-    // F(wi, wh): Fernel term
-    for(unsigned int i = 0; i < 3; ++i)
-        f0[i] = material.specular[i];
-    aux = std::max(dot(wi, wh), 0.f);
-    memcpy(f0, material.diffuse, float_s_3);
-
-    for(unsigned int i = 0; i < 3; ++i)
-        f[i] = f0[i] + (1.f - f0[i]) * pow((1.f - aux), 5.f);
-
-    // G(wi, w0): Geometric term
-    aux = alpha_2 + (1.f - alpha_2) * pow(vn_dot_wi, 2.f);
-    gi = (2 * dot(vn, wi)) / (dot(vn, wi) + sqrt(aux));
-    aux = alpha_2 + (1.f - alpha_2) * pow(dot(vn, wo), 2.f);
-    go = (2 * dot(vn, wo)) / (dot(vn, wo) + sqrt(aux));
-    g = gi * go;
-
-    for(unsigned int i = 0; i < 3; ++i) {
-        fs[i] = (d * f[i] * g) / (4.f * vn_dot_wi * dot(vn, wo)); // Specular term
-        if (isinf(fs[i]))
-            fs[i] = 1.f;
-    }
-
-    for(unsigned int i = 0; i < 3; ++i)
-        fd[i] = material.diffuse[i] / M_PI; // Diffuse term
-
-    // Final response
-    for(unsigned int i = 0; i < 3; ++i) res[i] = (fd[i] + fs[i]) * vn_dot_wi;
-    return res;
-}
-
-void fastEvaluateResponse(Vec3f* intersect, unsigned int mat, const Vec3f& camPosition, unsigned int* out) {
-    float* response = fastBRDF_GGX(intersect, mat, camPosition);
-    for(unsigned int i = 0; i < 3; ++i) out[i] = 255*response[i];
-
-}
-
-void fastRayTrace() {
-    chrono::time_point<chrono::system_clock> start, end;
-    start = chrono::system_clock::now();
-    time_t startTime = chrono::system_clock::to_time_t(start);
-    cout << "FastRayTrace start " << ctime(&startTime);
-
-    float height, width, dx, dy, dx_2, dy_2;
-    Vec3f w, u, v, c, l;
-
-    height = 2.f * tan(fovAngle * (M_PI / 360.f));
-    width = height * aspectRatio;
-    dx = width / screenWidth;
-    dy = height / screenHeight;
-    dx_2 = dx/2.f;
-    dy_2 = dy/2.f;
-
-    Vec3f eye = polarToCartesian (camEyePolar);
-    swap (eye[1], eye[2]); // swap Y and Z to keep the Y vertical
-    eye += camTarget;
-
-    w = eye - camTarget;
-    w.normalize();
-    u = cross(up, w);
-    u.normalize();
-    v = cross(w, u);
-
-    c = eye - w;
-
-    l = c - (u * (width / 2.f)) - (v * (height / 2.f));
-    Vec3f rayDir, location;
-    Vec3f* intersect = new Vec3f[sizeof(Vec3f) * 2];
-    unsigned int* colorResponse = new unsigned int[sizeof(unsigned int) * 3];
-    unsigned int ind(0), mat;
-
-    for (unsigned int i = 0; i < screenHeight; ++i)
-    {
-        ind = 3 * i * screenWidth;
-        /// TODO optimiser ca
-        //location = l + v * i * dy + v * dy_2 + u * dx_2;
-        for (unsigned int j = 0; j < screenWidth; ++j)
-        {
-            location = l + u * j * dx + v * i * dy + u * dx_2 + v * dy_2;
-            rayDir = location - eye;
-            if (fastRaySceneIntersection(eye, rayDir, intersect, mat)) {
-                fastEvaluateResponse(intersect, mat, eye, colorResponse);
-                for(auto k = 0; k < 3; ++k) rayImage[ind + k] = colorResponse[k];
-            }
-            else {
-                rayImage[ind] = rayImage[ind+1] = rayImage[ind+2] = 0;
-            }
-            ind += 3;
-            //location += (u * dx);
-        }
-    }
-
-    end = chrono::system_clock::now();
-    chrono::duration<double> elapsed_seconds = end-start;
-    time_t endTime = chrono::system_clock::to_time_t(end);
-    cout << "FastRayTrace finish " << ctime(&endTime);
-    cout << "Elapsed time: " << elapsed_seconds.count() << endl;
-}*/
 // Some Emacs-Hints -- please don't remove:
 //
 //  Local Variables:
